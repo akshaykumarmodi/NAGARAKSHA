@@ -1,4 +1,4 @@
-# CivicFix AI 🏛️⚡
+# NAGARAKSHAK 🏛️⚡
 > **Tagline:** *From Citizen Reports to Verified Resolution.*  
 > **Hackathon Prototype Notice:** This project is a working academic prototype built for demonstration with sample data and simulated municipal workflows. It is not connected to real government or municipal production systems.
 
@@ -13,8 +13,8 @@ In modern municipalities, civic complaint portals often break down:
 3. **Ghost Resolutions:** Contractors or field workers mark grievances as "Resolved" without verifiable proof or independent sign-off.
 4. **Ignored Deadlines:** Complaints linger for weeks with zero escalation or accountability.
 
-### The Solution: CivicFix AI
-CivicFix AI is an intelligent civic complaint management prototype that transforms raw grievance submissions into an organized, closed-loop workflow:
+### The Solution: NAGARAKSHAK
+NAGARAKSHAK is an intelligent civic complaint management prototype that transforms raw grievance submissions into an organized, closed-loop workflow:
 - **Semantic Deduplication:** Analyzes location keywords and complaint vocabulary to flag similarity scores and link duplicate tickets rather than double-booking crews.
 - **Explainable Department Triage:** Automatically classifies issues and routes them to Roads, Sanitation, Water Board, or Electrical departments with transparent reasoning.
 - **Dynamic SLA Escalation Sentinel:** Computes turnaround deadlines (12h, 24h, 48h, or 72h) and automatically flags/escalates breached deadlines to supervisory attention.

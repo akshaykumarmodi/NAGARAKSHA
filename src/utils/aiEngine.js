@@ -1,50 +1,128 @@
 import { DEPARTMENTS, PRIORITIES } from '../data/constants.js'
 
-// Keyword dictionary for category detection
+// Multilingual keyword dictionary for category detection (English, Hindi, Punjabi, Kannada, Telugu, Hinglish)
 const CATEGORY_KEYWORDS = {
-  'Garbage': ['garbage', 'trash', 'waste', 'dump', 'bin', 'stench', 'smell', 'overflow', 'rotting', 'rubbish', 'litter', 'plastic'],
-  'Pothole/Road Damage': ['pothole', 'crater', 'road', 'asphalt', 'tar', 'crack', 'pavement', 'accident', 'vehicle', 'tire', 'puncture', 'divider', 'sidewalk'],
-  'Streetlight': ['light', 'lamp', 'dark', 'bulb', 'streetlight', 'pole', 'wiring', 'sparking', 'electricity', 'blackout', 'illumination'],
-  'Water Leakage': ['water', 'pipe', 'leak', 'drain', 'drainage', 'sewage', 'burst', 'flood', 'gutter', 'contamination', 'drinking water', 'manhole']
+  'Garbage': [
+    // English
+    'garbage', 'trash', 'waste', 'dump', 'bin', 'stench', 'smell', 'overflow', 'rotting', 'rubbish', 'litter', 'plastic', 'debris', 'solid waste',
+    // Hindi
+    'कचरा', 'कूड़ा', 'कूड़ेदान', 'दुर्गंध', 'बदबू', 'गंदगी', 'सड़ांध', 'सफाई', 'डस्टबिन', 'कचरे', 'सड़', 'प्लास्टिक',
+    // Punjabi
+    'ਕੂੜਾ', 'ਗੰਦਗੀ', 'ਬਦਬੂ', 'ਕੂੜੇਦਾਨ', 'ਸੜਾਂਧ', 'ਕਚਰਾ', 'ਪਲਾਸਟਿਕ',
+    // Kannada
+    'ಕಸ', 'ಕಸದ', 'ದುರ್ವಾಸನೆ', 'ತ್ಯಾಜ್ಯ', 'ಕಸದತೊಟ್ಟಿ', 'ಗಿಡಗಂಟೆ', 'ಪ್ಲಾಸ್ಟಿಕ್',
+    // Telugu
+    'చెత్త', 'చెత్తకుండీ', 'కంపు', 'దుర్వాసన', 'వ్యర్థాలు', 'ప్లాస్టిక్',
+    // Hinglish / Transliterated
+    'kachra', 'kuda', 'koora', 'dustbin', 'badbu', 'durgandh', 'gandagi', 'safai', 'overflowing', 'rotting', 'malba'
+  ],
+  'Pothole/Road Damage': [
+    // English
+    'pothole', 'crater', 'road', 'asphalt', 'tar', 'crack', 'pavement', 'accident', 'vehicle', 'tire', 'puncture', 'divider', 'sidewalk', 'footpath', 'rebar', 'traffic', 'caved',
+    // Hindi
+    'गड्ढा', 'गड्ढे', 'सड़क', 'रास्ता', 'टूट', 'दुर्घटना', 'फुटपाथ', 'डामर', 'कंक्रीट', 'डिवाइडर', 'जाम', 'हादसा', 'टायर', 'सड़कें',
+    // Punjabi
+    'ਟੋਆ', 'ਟੋਏ', 'ਸੜਕ', 'ਖੱਡਾ', 'ਖੱਡੇ', 'ਹਾਦਸਾ', 'ਫੁੱਟਪਾਥ', 'ਟੁੱਟੀ', 'ਰਾਹ',
+    // Kannada
+    'ಗುಂಡಿ', 'ರಸ್ತೆ', 'ತಗ್ಗು', 'ಹಾಳಾದ', 'ಅಪಘಾತ', 'ಫುಟ್‌ಪಾತ್', 'ಡಾಂಬರು',
+    // Telugu
+    'గుంత', 'గుంతలు', 'రోడ్డు', 'రహదారి', 'ప్రమాదం', 'గోతులు', 'పాడైన',
+    // Hinglish / Transliterated
+    'gaddha', 'gaddhe', 'sadak', 'khadda', 'khadde', 'toota', 'tooti', 'accident', 'footpath', 'rasta', 'asphalt', 'divider'
+  ],
+  'Streetlight': [
+    // English
+    'light', 'lamp', 'dark', 'bulb', 'streetlight', 'pole', 'wiring', 'sparking', 'electricity', 'blackout', 'illumination', 'wire', 'shock', 'short circuit',
+    // Hindi
+    'लाइट', 'बिजली', 'तार', 'खंभा', 'खंभे', 'अंधेरा', 'करंट', 'बल्ब', 'स्ट्रीटलाइट', 'चिंगारी', 'स्पार्किंग', 'ट्रांसफार्मर', 'शॉक',
+    // Punjabi
+    'ਬਿਜਲੀ', 'ਲਾਈਟ', 'ਤਾਰ', 'ਖੰਭਾ', 'ਹਨੇਰਾ', 'ਕਰੰਟ', 'ਬੱਲਬ', 'ਸਪਾਰਕ',
+    // Kannada
+    'ದೀಪ', 'ಬೆಳಕು', 'ವಿದ್ಯುತ್', 'ಕಂಬ', 'ಕತ್ತಲೆ', 'ವೈರ್', 'ಸ್ಪಾರ್ಕ್', 'ಲೈಟ್',
+    // Telugu
+    'దీపం', 'వెలుగు', 'కరెంట్', 'విద్యుత్', 'స్తంభం', 'చీకటి', 'వైరు', 'స్పార్క్', 'లైట్',
+    // Hinglish / Transliterated
+    'bijli', 'taar', 'khamba', 'andhera', 'current', 'bulb', 'streetlight', 'sparking', 'shock', 'transformer', 'wiring'
+  ],
+  'Water Leakage': [
+    // English
+    'water', 'pipe', 'leak', 'drain', 'drainage', 'sewage', 'burst', 'flood', 'gutter', 'contamination', 'drinking water', 'manhole', 'pipeline', 'overflow',
+    // Hindi
+    'पानी', 'पाइप', 'लीक', 'रिसाव', 'नाली', 'सीवर', 'गटर', 'बाढ़', 'मैनहोल', 'जलभराव', 'नहाने', 'पीने का पानी', 'पाइपलाइन', 'टूटा पाइप', 'जल',
+    // Punjabi
+    'ਪਾਣੀ', 'ਪਾਈਪ', 'ਲੀਕ', 'ਨਾਲੀ', 'ਸੀਵਰੇਜ', 'ਗਟਰ', 'ਹੜ੍ਹ', 'ਜਲ',
+    // Kannada
+    'ನೀರು', 'ಪೈಪ್', 'ಸೋರಿಕೆ', 'ಚರಂಡಿ', 'ಒಳಚರಂಡಿ', 'ಗಟಾರ', 'ಕುಡಿಯುವ ನೀರು',
+    // Telugu
+    'నీరు', 'పైపు', 'లీకేజీ', 'మురుగు', 'కాలువ', 'డ్రైనేజీ', 'వరద', 'తాగునీరు',
+    // Hinglish / Transliterated
+    'paani', 'pani', 'pipe', 'leakage', 'risav', 'naali', 'nali', 'sewer', 'sewage', 'gutar', 'gutter', 'jalbharo', 'manhole', 'pipeline'
+  ]
 };
 
 const HIGH_URGENCY_KEYWORDS = [
+  // English
   'accident', 'danger', 'urgent', 'hazardous', 'hospital', 'school', 'children', 
-  'sparking', 'deep', 'live wire', 'flooding', 'contamination', 'ambulance', 'senior', 'fatal'
+  'sparking', 'deep', 'live wire', 'flooding', 'contamination', 'ambulance', 'senior', 'fatal', 'emergency', 'collapsed',
+  // Hindi
+  'दुर्घटना', 'खतरा', 'खतरनाक', 'आपातकालीन', 'अस्पताल', 'स्कूल', 'बच्चे', 'चिंगारी', 'गहरा', 'करंट', 'बाढ़', 'गंभीर', 'जानलेवा', 'बुजुर्ग',
+  // Punjabi
+  'ਹਾਦਸਾ', 'ਖ਼ਤਰਾ', 'ਖ਼ਤਰਨਾਕ', 'ਐਮਰਜੈਂਸੀ', 'ਹਸਪਤਾਲ', 'ਸਕੂਲ', 'ਬੱਚੇ', 'ਗੰਭੀਰ',
+  // Kannada
+  'ಅಪಘಾತ', 'ಅಪಾಯ', 'ತುರ್ತು', 'ಆಸ್ಪತ್ರೆ', 'ಶಾಲೆ', 'ಮಕ್ಕಳು', 'ತೀವ್ರ',
+  // Telugu
+  'ప్రమాదం', 'ప్రమాదకరమైన', 'అత్యవసర', 'ఆసుపత్రి', 'పాఠశాల', 'పిల్లలు', 'తీవ్రమైన',
+  // Hinglish
+  'khatra', 'khatarnaak', 'emergency', 'hospital', 'school', 'bachhe', 'haadsa', 'janleva', 'gehra'
 ];
 
 const LOW_URGENCY_KEYWORDS = [
-  'minor', 'faded', 'aesthetic', 'cosmetic', 'paint', 'small scratch', 'slow drip', 'dim'
+  'minor', 'faded', 'aesthetic', 'cosmetic', 'paint', 'small scratch', 'slow drip', 'dim',
+  'हल्का', 'छोटा', 'धीमा', 'साधारण', 'मामूली', 'पेंट',
+  'ਮਾਮੂਲੀ', 'ਛੋਟਾ', 'ਸਾਧਾਰਨ',
+  'ಸಣ್ಣ', 'ಸಾಧಾರಣ',
+  'చిన్న', 'సాధారణ',
+  'chota', 'mamooli', 'dheema'
 ];
 
-// Tokenizer & stop words
+// Tokenizer supporting all Unicode scripts (Latin, Devanagari, Gurmukhi, Kannada, Telugu, etc.)
 const STOP_WORDS = new Set([
   'the', 'is', 'at', 'which', 'on', 'a', 'an', 'and', 'or', 'in', 'near', 'to', 'for', 
-  'of', 'with', 'by', 'from', 'our', 'my', 'there', 'has', 'have', 'been', 'very', 'please'
+  'of', 'with', 'by', 'from', 'our', 'my', 'there', 'has', 'have', 'been', 'very', 'please',
+  'का', 'के', 'की', 'में', 'पर', 'है', 'हैं', 'से', 'को', 'था', 'थी', 'यह', 'वह', 'और',
+  'ਦੀ', 'ਦੇ', 'ਦਾ', 'ਵਿੱਚ', 'ਤੇ', 'ਹੈ', 'ਹਨ', 'ਅਤੇ',
+  'ಮತ್ತು', 'ಇದೆ', 'ಅಲ್ಲಿ', 'ಇಲ್ಲಿ',
+  'మరియు', 'ఉంది', 'లో', 'పై'
 ]);
 
 function tokenize(text = '') {
+  if (!text) return [];
   return text
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .split(/\s+/)
-    .filter(token => token.length > 2 && !STOP_WORDS.has(token));
+    .filter(token => token.length >= 2 && !STOP_WORDS.has(token));
 }
 
 export function detectCategory(text = '') {
   const tokens = tokenize(text);
+  const lowerText = text.toLowerCase();
   let bestCategory = 'Other';
   let maxMatches = 0;
   const matchDetails = [];
 
   for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    // Both token-based and substring-based matching for complex scripts
     const hits = tokens.filter(t => keywords.some(k => k.includes(t) || t.includes(k)));
-    if (hits.length > maxMatches) {
-      maxMatches = hits.length;
+    const directHits = keywords.filter(k => lowerText.includes(k.toLowerCase()));
+    const totalScore = Math.max(hits.length, directHits.length);
+
+    if (totalScore > maxMatches) {
+      maxMatches = totalScore;
       bestCategory = cat;
     }
-    if (hits.length > 0) {
-      matchDetails.push({ category: cat, count: hits.length, hits });
+    if (totalScore > 0) {
+      matchDetails.push({ category: cat, count: totalScore, hits: directHits.length > 0 ? directHits : hits });
     }
   }
 
@@ -57,18 +135,31 @@ export function detectCategory(text = '') {
 
 export function evaluatePriority(text = '', category = '') {
   const lower = text.toLowerCase();
-  const urgencyHits = HIGH_URGENCY_KEYWORDS.filter(k => lower.includes(k));
-  const lowHits = LOW_URGENCY_KEYWORDS.filter(k => lower.includes(k));
+  const urgencyHits = HIGH_URGENCY_KEYWORDS.filter(k => lower.includes(k.toLowerCase()));
+  const lowHits = LOW_URGENCY_KEYWORDS.filter(k => lower.includes(k.toLowerCase()));
 
-  if (urgencyHits.length >= 2 || lower.includes('live wire') || lower.includes('hospital') || lower.includes('fatal')) {
+  const hasCriticalHazard = 
+    urgencyHits.length >= 2 || 
+    lower.includes('live wire') || 
+    lower.includes('hospital') || 
+    lower.includes('fatal') || 
+    lower.includes('करंट') || 
+    lower.includes('जानलेवा') ||
+    lower.includes('ਅੱਗ') ||
+    lower.includes('ಅಪಾಯ') ||
+    lower.includes('ప్రమాదం');
+
+  if (hasCriticalHazard) {
     return {
       priority: 'Critical',
       slaHours: 12,
-      reason: `Flagged critical safety risk due to keywords: "${urgencyHits.join(', ')}". Requires emergency dispatch.`
+      reason: urgencyHits.length > 0 
+        ? `Flagged critical safety risk due to keywords: "${urgencyHits.slice(0, 3).join(', ')}". Requires emergency dispatch.`
+        : `Identified severe safety risk in vicinity. 12-hour SLA assigned.`
     };
   }
 
-  if (urgencyHits.length === 1 || category === 'Pothole/Road Damage' && lower.includes('deep')) {
+  if (urgencyHits.length === 1 || (category === 'Pothole/Road Damage' && (lower.includes('deep') || lower.includes('गहरा') || lower.includes('ਵੱਡਾ')))) {
     return {
       priority: 'High',
       slaHours: 24,

@@ -253,7 +253,7 @@ export function generateSeedData() {
       id: 'LOG-5001',
       complaintId: 'CFX-2026-1001',
       type: 'ESCALATION',
-      actor: 'CivicFix SLA Sentinel',
+      actor: 'NAGARAKSHAK SLA Sentinel',
       title: 'SLA Breach: Auto-Escalated to Zonal Chief',
       description: 'Complaint exceeded 12-hour critical response window by 42 hours without resolution. Escalation alert generated.',
       timestamp: hoursAgo(2)
@@ -271,7 +271,7 @@ export function generateSeedData() {
       id: 'LOG-5003',
       complaintId: 'CFX-2026-1005',
       type: 'DUPLICATE_FLAGGED',
-      actor: 'CivicFix Intelligence Engine',
+      actor: 'NAGARAKSHAK Intelligence Engine',
       title: 'Potential Duplicate Flagged (84% Match)',
       description: 'Matched with existing ticket CFX-2026-1002 in Sector 4 Market area.',
       timestamp: tDuplicate2

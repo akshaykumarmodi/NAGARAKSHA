@@ -7,31 +7,80 @@ import {
   AlertTriangle, 
   CheckCircle2, 
   RotateCcw, 
-  Send,
-  Building2,
-  FileCheck,
-  Clock
+  Send, 
+  Building2, 
+  FileCheck, 
+  Clock,
+  Database,
+  Download,
+  Upload,
+  ShieldAlert
 } from 'lucide-react'
 import { formatDateTime } from '../utils/timeUtils'
+import { useLanguage } from '../utils/LanguageContext'
+import { dataService } from '../services/dataService'
 
-export function AuditLogView({ auditLogs = [], onSelectComplaintById }) {
+export function AuditLogView({ auditLogs = [], onSelectComplaintById, onReloadFromStorage }) {
+  const { t } = useLanguage()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedType, setSelectedType] = useState('ALL')
+  const [isExporting, setIsExporting] = useState(false)
+
+  const handleExportData = () => {
+    try {
+      setIsExporting(true)
+      const payload = dataService.exportDatabasePayload()
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2))
+      const downloadAnchor = document.createElement('a')
+      downloadAnchor.setAttribute("href", dataStr)
+      downloadAnchor.setAttribute("download", `nagaraksha_db_export_${new Date().toISOString().slice(0, 10)}.json`)
+      document.body.appendChild(downloadAnchor)
+      downloadAnchor.click()
+      downloadAnchor.remove()
+      setTimeout(() => setIsExporting(false), 800)
+    } catch (err) {
+      alert('Error exporting database payload: ' + err.message)
+      setIsExporting(false)
+    }
+  }
+
+  const handleImportFile = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      try {
+        const success = dataService.importDatabasePayload(event.target.result)
+        if (success) {
+          alert('Database payload successfully imported and restored into local data service!')
+          if (onReloadFromStorage) onReloadFromStorage()
+          else window.location.reload()
+        } else {
+          alert('Failed to import database payload. Please verify JSON format.')
+        }
+      } catch (err) {
+        alert('Invalid JSON file: ' + err.message)
+      }
+    }
+    reader.readAsText(file)
+  }
 
   const filteredLogs = useMemo(() => {
     return auditLogs.filter(log => {
+      if (!log) return false
+
       if (searchTerm.trim()) {
         const q = searchTerm.toLowerCase()
         const matches = 
           (log.complaintId && log.complaintId.toLowerCase().includes(q)) ||
-          log.title.toLowerCase().includes(q) ||
-          log.description.toLowerCase().includes(q) ||
-          log.actor.toLowerCase().includes(q)
+          (log.title && log.title.toLowerCase().includes(q)) ||
+          (log.description && log.description.toLowerCase().includes(q)) ||
+          (log.actor && log.actor.toLowerCase().includes(q))
         if (!matches) return false
       }
 
       if (selectedType !== 'ALL') {
-        if (!log.type.includes(selectedType)) return false
+        if (!log.type || !log.type.includes(selectedType)) return false
       }
 
       return true
@@ -41,16 +90,57 @@ export function AuditLogView({ auditLogs = [], onSelectComplaintById }) {
   return (
     <div className="container" style={{ padding: '2.5rem 1.5rem' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem', marginBottom: '1.5rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-            <h1 style={{ fontSize: '1.85rem' }}>System Audit Trail & Governance Log</h1>
-            <span className="badge badge-purple">{auditLogs.length} Events</span>
+            <h1 style={{ fontSize: '1.85rem' }}>{t('audit_title')}</h1>
+            <span className="badge badge-purple">{auditLogs.length} {t('events', 'Events')}</span>
           </div>
           <p style={{ color: 'var(--slate-500)', fontSize: '0.9rem' }}>
-            Tamper-evident record of all AI classifications, crew dispatches, SLA escalations, and supervisor verification sign-offs.
+            {t('audit_sub')}
           </p>
         </div>
+
+        {/* Database Migration & Export/Import Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button 
+            className="btn btn-primary btn-sm"
+            onClick={handleExportData}
+            title="Download full relational JSON snapshot for database migration"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            <Download size={15} />
+            <span>{isExporting ? 'Exporting...' : 'Export DB JSON'}</span>
+          </button>
+
+          <label 
+            className="btn btn-secondary btn-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', margin: 0 }}
+            title="Import previously exported NAGARAKSHAK database JSON"
+          >
+            <Upload size={15} />
+            <span>Import DB JSON</span>
+            <input 
+              type="file" 
+              accept=".json,application/json" 
+              onChange={handleImportFile} 
+              style={{ display: 'none' }} 
+            />
+          </label>
+        </div>
+      </div>
+
+      {/* Security Architecture & Audit Integrity Notice */}
+      <div className="card" style={{ marginBottom: '1.5rem', background: 'var(--slate-50)', border: '1px solid var(--slate-200)', padding: '0.85rem 1.15rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+          <ShieldAlert size={16} color="var(--primary)" />
+          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--navy-900)' }}>
+            Database-Ready Security & Audit Architecture Notice
+          </span>
+        </div>
+        <p style={{ fontSize: '0.78rem', color: 'var(--slate-600)', lineHeight: 1.5, margin: 0 }}>
+          This interface currently reflects operational audit events captured in the centralized data service layer for demonstration purposes. In production deployment, audit logs are immutable, append-only records written via server-side middleware with write-locked database permissions and cryptographic timestamping. Client-side storage cannot guarantee tamper-proof audit trails.
+        </p>
       </div>
 
       {/* Filter and Search Bar */}
@@ -62,7 +152,7 @@ export function AuditLogView({ auditLogs = [], onSelectComplaintById }) {
             <input 
               type="text" 
               className="form-input" 
-              placeholder="Search by Complaint ID, actor, or action..."
+              placeholder={t('audit_search_placeholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{ paddingLeft: '2.4rem' }}
@@ -76,13 +166,14 @@ export function AuditLogView({ auditLogs = [], onSelectComplaintById }) {
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
             >
-              <option value="ALL">All Event Types</option>
-              <option value="RESOLUTION">Verifications & Closures</option>
-              <option value="ESCALAT">SLA Escalations</option>
-              <option value="EVIDENCE">Evidence Submissions</option>
-              <option value="DUPLICATE">Duplicate Detection Flags</option>
-              <option value="DEPARTMENT">Department Reassignments</option>
-              <option value="WORK">Dispatches & Work Starts</option>
+              <option value="ALL">{t('all_event_types')}</option>
+              <option value="COMPLAINT">{t('new_registrations')}</option>
+              <option value="RESOLUTION">{t('verifications_closures')}</option>
+              <option value="ESCALAT">{t('sla_escalations')}</option>
+              <option value="EVIDENCE">{t('evidence_submissions')}</option>
+              <option value="DUPLICATE">{t('duplicate_flags')}</option>
+              <option value="DEPARTMENT">{t('dept_reassignments')}</option>
+              <option value="WORK">{t('work_starts')}</option>
             </select>
           </div>
         </div>
@@ -98,11 +189,12 @@ export function AuditLogView({ auditLogs = [], onSelectComplaintById }) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {filteredLogs.map(log => {
-              const isEscalation = log.type.includes('ESCALAT')
-              const isResolved = log.type.includes('RESOLUTION_APPROVED')
-              const isRejected = log.type.includes('RESOLUTION_REJECTED')
-              const isDuplicate = log.type.includes('DUPLICATE')
-              const isEvidence = log.type.includes('EVIDENCE')
+              const logType = log.type || ''
+              const isEscalation = logType.includes('ESCALAT')
+              const isResolved = logType.includes('RESOLUTION_APPROVED')
+              const isRejected = logType.includes('RESOLUTION_REJECTED')
+              const isDuplicate = logType.includes('DUPLICATE')
+              const isEvidence = logType.includes('EVIDENCE')
 
               return (
                 <div 
@@ -113,9 +205,9 @@ export function AuditLogView({ auditLogs = [], onSelectComplaintById }) {
                     gap: '1rem', 
                     padding: '1rem', 
                     borderRadius: 'var(--radius-md)', 
-                    background: isEscalation ? '#fff5f5' : isResolved ? '#f0fdf4' : isRejected ? '#fff1f2' : 'var(--slate-50)',
+                    background: isEscalation ? 'var(--danger-bg)' : isResolved ? 'var(--success-bg)' : isRejected ? 'var(--danger-bg)' : 'var(--slate-50)',
                     border: '1px solid',
-                    borderColor: isEscalation ? '#fecaca' : isResolved ? '#bbf7d0' : isRejected ? '#fca5a5' : 'var(--slate-200)'
+                    borderColor: isEscalation ? 'var(--danger-border)' : isResolved ? 'var(--success-border)' : isRejected ? 'var(--danger-border)' : 'var(--slate-200)'
                   }}
                 >
                   <div style={{ 
@@ -125,7 +217,7 @@ export function AuditLogView({ auditLogs = [], onSelectComplaintById }) {
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center',
-                    background: isEscalation ? '#fee2e2' : isResolved ? '#dcfce7' : isEvidence ? '#dbeafe' : '#f1f5f9',
+                    background: isEscalation ? 'var(--danger-bg)' : isResolved ? 'var(--success-bg)' : isEvidence ? 'var(--info-bg)' : 'var(--bg-main)',
                     color: isEscalation ? 'var(--danger)' : isResolved ? 'var(--success)' : isEvidence ? 'var(--primary)' : 'var(--slate-600)',
                     flexShrink: 0
                   }}>
@@ -162,7 +254,7 @@ export function AuditLogView({ auditLogs = [], onSelectComplaintById }) {
                     </p>
 
                     <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)' }}>
-                      Authorized Actor: <strong style={{ color: 'var(--navy-900)' }}>{log.actor}</strong>
+                      {t('actor', 'Authorized Actor')}: <strong style={{ color: 'var(--navy-900)' }}>{log.actor}</strong>
                     </div>
                   </div>
                 </div>

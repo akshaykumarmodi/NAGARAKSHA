@@ -1,0 +1,504 @@
+import React, { useState } from 'react'
+import { 
+  UserCheck, 
+  Building2, 
+  ShieldCheck, 
+  Lock, 
+  Phone, 
+  Mail, 
+  KeyRound, 
+  ArrowRight, 
+  Sparkles, 
+  CheckCircle2, 
+  AlertCircle,
+  Sun,
+  Moon,
+  Languages,
+  BadgeCheck,
+  FileText
+} from 'lucide-react'
+import { NagarakshakLogo } from './NagarakshakLogo'
+import { authService, DEMO_CREDENTIALS } from '../services/authService'
+import { useLanguage } from '../utils/LanguageContext'
+
+export function LoginView({ onLoginSuccess, theme = 'light', toggleTheme }) {
+  const { lang, setLang, t } = useLanguage()
+  const [activeRoleTab, setActiveRoleTab] = useState('citizen') // 'citizen' or 'authority'
+  const [errorMessage, setErrorMessage] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Citizen Form State
+  const [citizenId, setCitizenId] = useState(DEMO_CREDENTIALS.citizen.mobile)
+  const [citizenPasscode, setCitizenPasscode] = useState(DEMO_CREDENTIALS.citizen.defaultPasscode)
+
+  // Authority Form State
+  const [authorityBadge, setAuthorityBadge] = useState(DEMO_CREDENTIALS.authority.badgeNumber)
+  const [authorityPassword, setAuthorityPassword] = useState(DEMO_CREDENTIALS.authority.defaultPasscode)
+
+  const handleCitizenSubmit = (e) => {
+    e.preventDefault()
+    setErrorMessage('')
+    if (!citizenId.trim()) {
+      setErrorMessage('Please enter your registered mobile number or citizen ID.')
+      return
+    }
+
+    setIsSubmitting(true)
+    setTimeout(() => {
+      try {
+        const user = authService.loginAsCitizen({
+          identifier: citizenId,
+          passcode: citizenPasscode
+        })
+        if (user) {
+          onLoginSuccess(user)
+        } else {
+          setErrorMessage('Login failed. Please check credentials.')
+        }
+      } catch (err) {
+        setErrorMessage(err.message || 'Authentication failed.')
+      } finally {
+        setIsSubmitting(false)
+      }
+    }, 300)
+  }
+
+  const handleAuthoritySubmit = (e) => {
+    e.preventDefault()
+    setErrorMessage('')
+    if (!authorityBadge.trim()) {
+      setErrorMessage('Please enter your officer badge ID or official email.')
+      return
+    }
+
+    setIsSubmitting(true)
+    setTimeout(() => {
+      try {
+        const user = authService.loginAsAuthority({
+          badgeOrEmail: authorityBadge,
+          password: authorityPassword
+        })
+        if (user) {
+          onLoginSuccess(user)
+        } else {
+          setErrorMessage('Login failed. Please verify officer badge ID.')
+        }
+      } catch (err) {
+        setErrorMessage(err.message || 'Authentication failed.')
+      } finally {
+        setIsSubmitting(false)
+      }
+    }, 300)
+  }
+
+  const handleQuickLogin = (roleType) => {
+    setErrorMessage('')
+    setIsSubmitting(true)
+    setTimeout(() => {
+      const user = authService.quickDemoLogin(roleType)
+      setIsSubmitting(false)
+      if (user) {
+        onLoginSuccess(user)
+      }
+    }, 200)
+  }
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      background: 'var(--bg-main)',
+      color: 'var(--navy-900)'
+    }}>
+      {/* Top Bar for Language & Theme */}
+      <div style={{
+        padding: '0.75rem 1rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '0.5rem',
+        background: 'var(--bg-card)',
+        borderBottom: '1px solid var(--slate-200)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <NagarakshakLogo size={24} />
+          <span style={{ fontWeight: 800, fontSize: '0.95rem', letterSpacing: '0.04em' }}>
+            NAGARA<span style={{ color: 'var(--accent-saffron)' }}>KSHAK</span>
+          </span>
+          <span className="badge badge-primary" style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem' }}>
+            Official Portal
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          {/* Language Switcher */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.3rem',
+            background: 'var(--bg-subtle)',
+            border: '1px solid var(--slate-300)',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.15rem 0.45rem',
+            height: '30px'
+          }}>
+            <Languages size={14} color="var(--primary)" />
+            <select 
+              value={lang} 
+              onChange={(e) => setLang(e.target.value)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--navy-900)',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+              aria-label="Select Language"
+            >
+              <option value="en">English</option>
+              <option value="hi">हिन्दी (Hindi)</option>
+              <option value="pa">ਪੰਜਾਬੀ (Punjabi)</option>
+              <option value="kn">ಕನ್ನಡ (Kannada)</option>
+              <option value="te">తెలుగు (Telugu)</option>
+            </select>
+          </div>
+
+          {/* Theme Toggle */}
+          <button 
+            className="btn btn-subtle btn-sm"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
+            style={{ height: '30px', padding: '0 0.5rem' }}
+          >
+            {theme === 'dark' ? <Sun size={14} color="#f59e0b" /> : <Moon size={14} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Main Login Card Container */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2rem 1rem'
+      }}>
+        <div className="card" style={{
+          width: '100%',
+          maxWidth: '520px',
+          boxShadow: 'var(--shadow-xl)',
+          border: '1px solid var(--slate-200)',
+          borderRadius: 'var(--radius-xl)',
+          overflow: 'hidden',
+          padding: 0
+        }}>
+          {/* Portal Header Header Banner */}
+          <div style={{
+            background: 'linear-gradient(135deg, var(--navy-950) 0%, var(--navy-900) 100%)',
+            color: '#ffffff',
+            padding: '2rem 1.75rem 1.5rem',
+            textAlign: 'center',
+            position: 'relative'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.85rem' }}>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.08)',
+                padding: '0.65rem',
+                borderRadius: '50%',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                display: 'inline-flex'
+              }}>
+                <NagarakshakLogo size={44} />
+              </div>
+            </div>
+
+            <h1 style={{
+              fontSize: '1.45rem',
+              fontWeight: 800,
+              color: '#ffffff',
+              letterSpacing: '0.04em',
+              marginBottom: '0.35rem'
+            }}>
+              NAGARA<span style={{ color: 'var(--accent-saffron)' }}>KSHAK</span> PORTAL
+            </h1>
+            <p style={{
+              fontSize: '0.85rem',
+              color: 'var(--slate-300)',
+              margin: 0
+            }}>
+              Smarter Cities, Safer Communities • Secure Access Gateway
+            </p>
+          </div>
+
+          {/* Role Navigation Switcher Tabs */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            background: 'var(--bg-subtle)',
+            borderBottom: '1px solid var(--slate-200)',
+            padding: '0.35rem'
+          }}>
+            <button
+              type="button"
+              onClick={() => { setActiveRoleTab('citizen'); setErrorMessage('') }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                padding: '0.75rem 0.5rem',
+                border: 'none',
+                borderRadius: 'var(--radius-md)',
+                background: activeRoleTab === 'citizen' ? 'var(--bg-card)' : 'transparent',
+                color: activeRoleTab === 'citizen' ? 'var(--primary)' : 'var(--slate-500)',
+                fontWeight: activeRoleTab === 'citizen' ? 700 : 500,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                boxShadow: activeRoleTab === 'citizen' ? 'var(--shadow-sm)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <UserCheck size={16} />
+              <span>Citizen Login</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setActiveRoleTab('authority'); setErrorMessage('') }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                padding: '0.75rem 0.5rem',
+                border: 'none',
+                borderRadius: 'var(--radius-md)',
+                background: activeRoleTab === 'authority' ? 'var(--bg-card)' : 'transparent',
+                color: activeRoleTab === 'authority' ? 'var(--primary)' : 'var(--slate-500)',
+                fontWeight: activeRoleTab === 'authority' ? 700 : 500,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                boxShadow: activeRoleTab === 'authority' ? 'var(--shadow-sm)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Building2 size={16} />
+              <span>Authority Staff</span>
+            </button>
+          </div>
+
+          {/* Form Body */}
+          <div style={{ padding: 'clamp(1rem, 3.5vw, 1.75rem)' }}>
+            {errorMessage && (
+              <div style={{
+                background: 'var(--danger-bg)',
+                border: '1px solid var(--danger-border)',
+                color: 'var(--danger)',
+                padding: '0.75rem 1rem',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '0.82rem',
+                marginBottom: '1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <AlertCircle size={16} />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            {/* TAB 1: CITIZEN LOGIN */}
+            {activeRoleTab === 'citizen' && (
+              <form onSubmit={handleCitizenSubmit}>
+                <div style={{ marginBottom: '1.15rem' }}>
+                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.2rem' }}>
+                    <span>Registered Mobile or Citizen ID</span>
+                    <span style={{ color: 'var(--slate-400)', fontWeight: 400, fontSize: '0.72rem' }}>Demo: 9876543210</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Phone size={16} color="var(--slate-400)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder="e.g. 9876543210 or CIT-2026-9042"
+                      value={citizenId}
+                      onChange={(e) => setCitizenId(e.target.value)}
+                      style={{ paddingLeft: '2.5rem' }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.2rem' }}>
+                    <span>Passcode / Mock OTP</span>
+                    <span style={{ color: 'var(--slate-400)', fontWeight: 400, fontSize: '0.72rem' }}>Demo: 123456</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <KeyRound size={16} color="var(--slate-400)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+                    <input 
+                      type="password" 
+                      className="form-input" 
+                      placeholder="Enter 6-digit passcode"
+                      value={citizenPasscode}
+                      onChange={(e) => setCitizenPasscode(e.target.value)}
+                      style={{ paddingLeft: '2.5rem' }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  style={{ width: '100%', padding: '0.75rem', justifyContent: 'center', marginBottom: '1.25rem' }}
+                  disabled={isSubmitting}
+                >
+                  <span>{isSubmitting ? 'Authenticating...' : 'Sign In as Citizen'}</span>
+                  <ArrowRight size={16} />
+                </button>
+
+                {/* Instant Demo Shortcut Card */}
+                <div style={{
+                  background: 'var(--primary-subtle)',
+                  border: '1px solid var(--primary-border)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.85rem 1rem',
+                  marginBottom: '1.25rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--primary)' }}>
+                      ⚡ Instant Evaluator Access
+                    </span>
+                    <span className="badge badge-success" style={{ fontSize: '0.68rem', padding: '0.1rem 0.35rem' }}>
+                      Ready
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.76rem', color: 'var(--slate-600)', marginBottom: '0.65rem', lineHeight: 1.4 }}>
+                    Test the complete citizen experience: file grievances, upload evidence, and track ticket status.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => handleQuickLogin('CITIZEN')}
+                    style={{ width: '100%', justifyContent: 'center', whiteSpace: 'normal', height: 'auto', padding: '0.6rem 0.75rem', lineHeight: 1.35 }}
+                  >
+                    <span>One-Click Login: Arun Kumar (Citizen)</span>
+                  </button>
+                </div>
+
+                {/* Statutory Privacy & Aadhaar Architecture Notice */}
+                <div style={{
+                  fontSize: '0.72rem',
+                  color: 'var(--slate-500)',
+                  lineHeight: 1.45,
+                  borderTop: '1px solid var(--slate-200)',
+                  paddingTop: '0.75rem'
+                }}>
+                  <strong>Privacy Safeguard Notice:</strong> Real Aadhaar authentication is a future statutory integration requiring UIDAI authorization. In compliance with DPDP Act, no raw Aadhaar numbers or biometrics are collected in this portal.
+                </div>
+              </form>
+            )}
+
+            {/* TAB 2: AUTHORITY / GOVERNMENT STAFF LOGIN */}
+            {activeRoleTab === 'authority' && (
+              <form onSubmit={handleAuthoritySubmit}>
+                <div style={{ marginBottom: '1.15rem' }}>
+                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.2rem' }}>
+                    <span>Officer Badge ID or Official Email</span>
+                    <span style={{ color: 'var(--slate-400)', fontWeight: 400, fontSize: '0.72rem' }}>Demo: KA-GOV-8821</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <BadgeCheck size={16} color="var(--slate-400)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder="e.g. KA-GOV-8821 or OFF-BBMP-402"
+                      value={authorityBadge}
+                      onChange={(e) => setAuthorityBadge(e.target.value)}
+                      style={{ paddingLeft: '2.5rem' }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.2rem' }}>
+                    <span>Department Security Password</span>
+                    <span style={{ color: 'var(--slate-400)', fontWeight: 400, fontSize: '0.72rem' }}>Demo: admin123</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock size={16} color="var(--slate-400)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+                    <input 
+                      type="password" 
+                      className="form-input" 
+                      placeholder="Enter security password"
+                      value={authorityPassword}
+                      onChange={(e) => setAuthorityPassword(e.target.value)}
+                      style={{ paddingLeft: '2.5rem' }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  style={{ width: '100%', padding: '0.75rem', justifyContent: 'center', marginBottom: '1.25rem' }}
+                  disabled={isSubmitting}
+                >
+                  <span>{isSubmitting ? 'Verifying Credentials...' : 'Sign In to Municipal Dispatch'}</span>
+                  <ArrowRight size={16} />
+                </button>
+
+                {/* Instant Demo Shortcut Card */}
+                <div style={{
+                  background: 'var(--accent-saffron-subtle)',
+                  border: '1px solid var(--accent-saffron-border)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.85rem 1rem',
+                  marginBottom: '1.25rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--accent-saffron-hover)' }}>
+                      ⚡ Authority Command Access
+                    </span>
+                    <span className="badge badge-warning" style={{ fontSize: '0.68rem', padding: '0.1rem 0.35rem' }}>
+                      Supervisor
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.76rem', color: 'var(--slate-600)', marginBottom: '0.65rem', lineHeight: 1.4 }}>
+                    Access Authority Queue, review AI-verified tickets, assign field crews, inspect repair photos, and approve/reject closures.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-warning btn-sm"
+                    onClick={() => handleQuickLogin('AUTHORITY')}
+                    style={{ width: '100%', justifyContent: 'center', whiteSpace: 'normal', height: 'auto', padding: '0.6rem 0.75rem', lineHeight: 1.35 }}
+                  >
+                    <span>One-Click Login: Rajesh Varma (Zonal Officer)</span>
+                  </button>
+                </div>
+
+                {/* Security Audit Notice */}
+                <div style={{
+                  fontSize: '0.72rem',
+                  color: 'var(--slate-500)',
+                  lineHeight: 1.45,
+                  borderTop: '1px solid var(--slate-200)',
+                  paddingTop: '0.75rem'
+                }}>
+                  <strong>Municipal Security Notice:</strong> All administrative dispatch actions, crew assignments, and resolution sign-offs are logged into the immutable operational audit ledger.
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

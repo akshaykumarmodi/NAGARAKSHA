@@ -24,6 +24,9 @@ export const DEPARTMENT_OFFICERS = {
 
 export const STATUSES = [
   { id: 'Submitted', label: 'Submitted', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' },
+  { id: 'AI Verified', label: 'AI Verified (Authority Queue)', color: '#059669', bg: '#ecfdf5', border: '#a7f3d0' },
+  { id: 'Needs More Evidence', label: 'Needs More Evidence', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+  { id: 'Flagged for Review', label: 'Flagged for Review', color: '#e11d48', bg: '#fff1f2', border: '#fecdd3' },
   { id: 'Assigned', label: 'Assigned', color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
   { id: 'In Progress', label: 'In Progress', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
   { id: 'Awaiting Verification', label: 'Awaiting Review', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },

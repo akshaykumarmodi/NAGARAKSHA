@@ -1,4 +1,4 @@
-# CivicFix AI 🏛️⚡
+# NAGARAKSHAK 🛡️🏛️
 > **Tagline:** *From Citizen Reports to Verified Resolution.*  
 > **Hackathon Prototype Notice:** This project is a working academic prototype built for demonstration with sample data and simulated municipal workflows. It is not connected to real government or municipal production systems.
 
@@ -13,27 +13,32 @@ In modern municipalities, civic complaint portals often break down:
 3. **Ghost Resolutions:** Contractors or field workers mark grievances as "Resolved" without verifiable proof or independent sign-off.
 4. **Ignored Deadlines:** Complaints linger for weeks with zero escalation or accountability.
 
-### The Solution: CivicFix AI
-CivicFix AI is an intelligent civic complaint management prototype that transforms raw grievance submissions into an organized, closed-loop workflow:
+### The Solution: NAGARAKSHAK
+NAGARAKSHAK is an intelligent civic complaint management prototype that transforms raw grievance submissions into an organized, closed-loop workflow:
 - **Semantic Deduplication:** Analyzes location keywords and complaint vocabulary to flag similarity scores and link duplicate tickets rather than double-booking crews.
 - **Explainable Department Triage:** Automatically classifies issues and routes them to Roads, Sanitation, Water Board, or Electrical departments with transparent reasoning.
+- **AI Verification States:** Distinguishes between `AI Verified` (routed immediately to Authority Queue), `Needs More Evidence` (requires photo/clarification), and `Flagged for Review` (similarity check).
 - **Dynamic SLA Escalation Sentinel:** Computes turnaround deadlines (12h, 24h, 48h, or 72h) and automatically flags/escalates breached deadlines to supervisory attention.
 - **Two-Party Evidence Verification:** Requires field workers to submit repair notes and photographic proof, which a supervising reviewer must explicitly inspect and approve or reject.
-- **Local Activity & Audit Trail:** Logs triage recommendations, status transitions, and supervisor sign-offs directly in browser storage for full session traceability.
+- **Centralized Data & Service Abstraction:** Pure separation between UI components and the centralized persistence layer (`src/services/dataService.js`), fully prepared for immediate production database and REST API migration.
+- **Citizen Privacy Safeguards:** Decoupled internal citizen IDs (`CIT-2026-XXXX`), masked contacts, and strict prohibition on raw Aadhaar or biometric data.
 
-> **Architecture & AI Transparency:**  
-> The current application is a frontend prototype. It runs entirely in the browser using `localStorage` for state persistence and a deterministic rule-based demo analysis engine (keyword matching, text tokenization, and heuristic scoring). It **does not** require or connect to external cloud AI APIs (like OpenAI or Gemini), a remote database, live government APIs, or cryptographic blockchain auditing.
+> **Architecture & Database Readiness Notice:**  
+> The current hackathon demo uses a centralized data service layer (`dataService.js`) with structured relational models. In demo presentation mode, data persists reliably in the browser. Full PostgreSQL DDL schemas, REST API specifications, S3 presigned URL workflows, and database migration scripts are documented in [DATABASE_ARCHITECTURE.md](DATABASE_ARCHITECTURE.md).
 
 ---
 
-## 2. Technology Stack (from `package.json`)
+## 2. Technology Stack
 
-- **Frontend Library:** React 18 (`react` ^18.3.1, `react-dom` ^18.3.1)
+- **Frontend Framework:** React 18 (`react` ^18.3.1, `react-dom` ^18.3.1)
 - **Build Tool & Dev Server:** Vite 5 (`vite` ^5.4.14, `@vitejs/plugin-react` ^4.3.4)
 - **UI Icons:** Lucide React (`lucide-react` ^1.16.0)
-- **Styling:** Custom Vanilla CSS Design System (`src/index.css` with responsive layout and dark/light accents)
-- **Data Persistence:** Browser `localStorage` (Keys: `civicfix_ai_complaints_v1`, `civicfix_ai_audit_v1`)
-- **Analysis Engine:** Local rule-based NLP tokenization, Jaccard keyword overlap, and heuristic priority classification (`src/utils/aiEngine.js`, labeled as **Rule-based demo analysis**)
+- **Styling:** Custom Vanilla CSS Design System (`src/index.css` with responsive layout, glassmorphism, and dark/light themes)
+- **Centralized Data Layer:**
+  - `src/services/dataService.js`: Singleton data & migration manager (normalized CRUD, relational mapping, JSON DB export/import).
+  - `src/services/schema.js`: Domain schemas (`Citizen`, `Complaint`, `Evidence`, `StatusHistory`, `ResolutionRecord`, `SlaEvent`).
+  - `src/services/evidenceService.js`: File validation (<= 5MB, MIME checking, SHA-256 generation, S3 presigned URL contract).
+- **Database Architecture:** Production PostgreSQL DDL, REST API endpoints, and direct S3 object storage specifications defined in [DATABASE_ARCHITECTURE.md](DATABASE_ARCHITECTURE.md).
 
 ---
 
@@ -71,11 +76,43 @@ Open [http://localhost:3000/](http://localhost:3000/) in your browser (Google Ch
 
 ---
 
-## 4. How the Demo Data & Persistence Work
+## 4. Authentication, Demo Roles & Credentials
 
-- **Local Storage:** All complaints, status changes, and audit entries persist in your browser's `localStorage`.
-- **Session Persistence:** Refreshing the page or closing your browser preserves newly created complaints and supervisor actions.
-- **"Reset Demo" Feature:** To reset the application back to its clean initial state for pitches or grading, click the **Reset Demo** button in the top navigation bar. It instantly restores the default set of sample civic tickets.
+When you open the application without an active session, NAGARAKSHAK displays the **Official Login Portal** as the initial entry point.
+
+### Role 1: Citizen Login
+- **Demo Mobile / ID:** `9876543210` (or `CIT-2026-9042` / `citizen@nagaraksha.demo`)
+- **Demo Passcode / OTP:** `123456`
+- **Instant Access:** Click the **"One-Click Login: Arun Kumar (Citizen)"** button.
+- **Citizen Experience:**
+  - Files grievances with photos/video evidence and location coordinates.
+  - Tracks status changes (`AI Verified`, `Needs More Evidence`, `In Progress`, `Resolved`) with timestamps.
+  - Submits 1–5 star satisfaction ratings and toggles community crew appreciations.
+  - **UI Access Restrictions:** Municipal command screens (*Dashboard* and *Audit Trail*) as well as crew dispatch/closure approvals are hidden from citizens.
+
+### Role 2: Authority / Government Staff Login
+- **Demo Staff Badge / Email:** `KA-GOV-8821` (or `OFF-BBMP-402` / `officer@nagaraksha.demo`)
+- **Security Password:** `admin123`
+- **Instant Access:** Click the **"One-Click Login: Rajesh Varma (Zonal Officer)"** button.
+- **Authority Experience:**
+  - Accesses the full **Municipal Operations Command Dashboard** with live telemetry and SLA Sentinel.
+  - Manages the **Authority Queue**, dispatches field crews, and inspects AI-verified tickets.
+  - Inspects field worker repair proofs and performs official two-party verification (`Approve Resolution` or `Reject Evidence`).
+  - Accesses the complete **Audit Trail** and exports/imports database JSON migration snapshots.
+
+### Session Persistence & Logout
+- Sessions persist across page refreshes via `authService` in `localStorage`.
+- Clicking the **Logout** button in the top navbar terminates the session and immediately returns the user to the Login page.
+
+---
+
+## 5. Data Persistence & Migration Readiness
+
+- **Centralized Service Architecture:** All database and storage operations are abstracted behind `src/services/dataService.js`. UI components never access storage APIs directly.
+- **Reliable Persistence:** Complaints, status transitions, resolution sign-offs, and audit entries are reliably persisted. Refreshing the browser preserves newly submitted grievances and live workflow changes.
+- **Separation of Demo vs. User Data:** Default presentation records are tagged with `isDemo: true`, while live citizen complaints are tagged with `isDemo: false`.
+- **Database Export/Import (JSON Migration Snapshot):** Under the **Audit Log** tab, administrators and evaluators can click **Export DB JSON** to download a structured, relational snapshot (`citizens`, `complaints`, `evidenceFiles`, `statusHistory`, `resolutionRecords`, `slaEvents`) ready for ingestion into a production PostgreSQL or MongoDB database. You can also import previously saved snapshots via **Import DB JSON**.
+- **"Reset Demo" Safety:** Clicking **Reset Demo** in the top navigation bar restores presentation defaults while keeping user workflow clean.
 
 ---
 

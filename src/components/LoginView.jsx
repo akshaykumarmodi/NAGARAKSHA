@@ -31,11 +31,18 @@ export function LoginView({ onLoginSuccess, theme = 'light', toggleTheme }) {
   const [citizenId, setCitizenId] = useState(DEMO_CREDENTIALS.citizen.mobile)
   const [citizenPasscode, setCitizenPasscode] = useState(DEMO_CREDENTIALS.citizen.defaultPasscode)
 
+  // Citizen Registration State
+  const [isRegisterMode, setIsRegisterMode] = useState(false)
+  const [regName, setRegName] = useState('')
+  const [regMobile, setRegMobile] = useState('')
+  const [regPassword, setRegPassword] = useState('')
+  const [regWard, setRegWard] = useState('Ward 42 (Indiranagar)')
+
   // Authority Form State
   const [authorityBadge, setAuthorityBadge] = useState(DEMO_CREDENTIALS.authority.badgeNumber)
   const [authorityPassword, setAuthorityPassword] = useState(DEMO_CREDENTIALS.authority.defaultPasscode)
 
-  const handleCitizenSubmit = (e) => {
+  const handleCitizenSubmit = async (e) => {
     e.preventDefault()
     setErrorMessage('')
     if (!citizenId.trim()) {
@@ -44,26 +51,57 @@ export function LoginView({ onLoginSuccess, theme = 'light', toggleTheme }) {
     }
 
     setIsSubmitting(true)
-    setTimeout(() => {
-      try {
-        const user = authService.loginAsCitizen({
-          identifier: citizenId,
-          passcode: citizenPasscode
-        })
-        if (user) {
-          onLoginSuccess(user)
-        } else {
-          setErrorMessage('Login failed. Please check credentials.')
-        }
-      } catch (err) {
-        setErrorMessage(err.message || 'Authentication failed.')
-      } finally {
-        setIsSubmitting(false)
+    try {
+      const user = await authService.loginAsCitizen({
+        identifier: citizenId,
+        passcode: citizenPasscode
+      })
+      if (user) {
+        onLoginSuccess(user)
+      } else {
+        setErrorMessage('Login failed. Please check credentials.')
       }
-    }, 300)
+    } catch (err) {
+      setErrorMessage(err.message || 'Authentication failed.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const handleAuthoritySubmit = (e) => {
+  const handleCitizenRegister = async (e) => {
+    e.preventDefault()
+    setErrorMessage('')
+    if (!regName.trim() || !regMobile.trim() || !regPassword.trim()) {
+      setErrorMessage('Please enter your full name, mobile number, and password.')
+      return
+    }
+    if (regPassword.length < 6) {
+      setErrorMessage('Password must be at least 6 characters.')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const user = await authService.registerCitizen({
+        username: regMobile.trim(),
+        password: regPassword.trim(),
+        name: regName.trim(),
+        phone: regMobile.trim(),
+        ward: regWard.trim() || 'Ward 42 (Indiranagar)'
+      })
+      if (user) {
+        onLoginSuccess(user)
+      } else {
+        setErrorMessage('Registration failed. Please try again.')
+      }
+    } catch (err) {
+      setErrorMessage(err.message || 'Registration failed.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleAuthoritySubmit = async (e) => {
     e.preventDefault()
     setErrorMessage('')
     if (!authorityBadge.trim()) {
@@ -72,35 +110,36 @@ export function LoginView({ onLoginSuccess, theme = 'light', toggleTheme }) {
     }
 
     setIsSubmitting(true)
-    setTimeout(() => {
-      try {
-        const user = authService.loginAsAuthority({
-          badgeOrEmail: authorityBadge,
-          password: authorityPassword
-        })
-        if (user) {
-          onLoginSuccess(user)
-        } else {
-          setErrorMessage('Login failed. Please verify officer badge ID.')
-        }
-      } catch (err) {
-        setErrorMessage(err.message || 'Authentication failed.')
-      } finally {
-        setIsSubmitting(false)
+    try {
+      const user = await authService.loginAsAuthority({
+        badgeOrEmail: authorityBadge,
+        password: authorityPassword
+      })
+      if (user) {
+        onLoginSuccess(user)
+      } else {
+        setErrorMessage('Login failed. Please verify officer badge ID.')
       }
-    }, 300)
+    } catch (err) {
+      setErrorMessage(err.message || 'Authentication failed.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const handleQuickLogin = (roleType) => {
+  const handleQuickLogin = async (roleType) => {
     setErrorMessage('')
     setIsSubmitting(true)
-    setTimeout(() => {
-      const user = authService.quickDemoLogin(roleType)
-      setIsSubmitting(false)
+    try {
+      const user = await authService.quickDemoLogin(roleType)
       if (user) {
         onLoginSuccess(user)
       }
-    }, 200)
+    } catch (err) {
+      setErrorMessage(err.message || 'Demo login failed.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -128,7 +167,7 @@ export function LoginView({ onLoginSuccess, theme = 'light', toggleTheme }) {
             NAGARA<span style={{ color: 'var(--accent-saffron)' }}>KSHAK</span>
           </span>
           <span className="badge badge-primary" style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem' }}>
-            Official Portal
+            {t('login_official_portal', 'Official Portal')}
           </span>
         </div>
 
@@ -230,7 +269,7 @@ export function LoginView({ onLoginSuccess, theme = 'light', toggleTheme }) {
               color: 'var(--slate-300)',
               margin: 0
             }}>
-              Smarter Cities, Safer Communities • Secure Access Gateway
+              {t('login_gateway_sub', 'Smarter Cities, Safer Communities • Secure Access Gateway')}
             </p>
           </div>
 
@@ -263,7 +302,7 @@ export function LoginView({ onLoginSuccess, theme = 'light', toggleTheme }) {
               }}
             >
               <UserCheck size={16} />
-              <span>Citizen Login</span>
+              <span>{t('citizen_login_tab', 'Citizen Login')}</span>
             </button>
 
             <button
@@ -287,7 +326,7 @@ export function LoginView({ onLoginSuccess, theme = 'light', toggleTheme }) {
               }}
             >
               <Building2 size={16} />
-              <span>Authority Staff</span>
+              <span>{t('authority_staff_tab', 'Authority Staff')}</span>
             </button>
           </div>
 
@@ -311,56 +350,151 @@ export function LoginView({ onLoginSuccess, theme = 'light', toggleTheme }) {
               </div>
             )}
 
-            {/* TAB 1: CITIZEN LOGIN */}
+            {/* TAB 1: CITIZEN LOGIN & REGISTRATION */}
             {activeRoleTab === 'citizen' && (
-              <form onSubmit={handleCitizenSubmit}>
-                <div style={{ marginBottom: '1.15rem' }}>
-                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.2rem' }}>
-                    <span>Registered Mobile or Citizen ID</span>
-                    <span style={{ color: 'var(--slate-400)', fontWeight: 400, fontSize: '0.72rem' }}>Demo: 9876543210</span>
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <Phone size={16} color="var(--slate-400)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
-                    <input 
-                      type="text" 
-                      className="form-input" 
-                      placeholder="e.g. 9876543210 or CIT-2026-9042"
-                      value={citizenId}
-                      onChange={(e) => setCitizenId(e.target.value)}
-                      style={{ paddingLeft: '2.5rem' }}
-                      required
-                    />
-                  </div>
+              <div>
+                {/* Sign In vs Register Toggle */}
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--slate-200)', paddingBottom: '0.65rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => { setIsRegisterMode(false); setErrorMessage('') }}
+                    style={{
+                      background: !isRegisterMode ? 'var(--primary)' : 'transparent',
+                      color: !isRegisterMode ? '#ffffff' : 'var(--slate-600)',
+                      border: 'none',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '0.35rem 0.85rem',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {t('sign_in_tab', 'Sign In')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setIsRegisterMode(true); setErrorMessage('') }}
+                    style={{
+                      background: isRegisterMode ? 'var(--primary)' : 'transparent',
+                      color: isRegisterMode ? '#ffffff' : 'var(--slate-600)',
+                      border: 'none',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '0.35rem 0.85rem',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {t('register_citizen_tab', '+ Register New Citizen')}
+                  </button>
                 </div>
 
-                <div style={{ marginBottom: '1.25rem' }}>
-                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.2rem' }}>
-                    <span>Passcode / Mock OTP</span>
-                    <span style={{ color: 'var(--slate-400)', fontWeight: 400, fontSize: '0.72rem' }}>Demo: 123456</span>
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <KeyRound size={16} color="var(--slate-400)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
-                    <input 
-                      type="password" 
-                      className="form-input" 
-                      placeholder="Enter 6-digit passcode"
-                      value={citizenPasscode}
-                      onChange={(e) => setCitizenPasscode(e.target.value)}
-                      style={{ paddingLeft: '2.5rem' }}
-                      required
-                    />
-                  </div>
-                </div>
+                {!isRegisterMode ? (
+                  <form onSubmit={handleCitizenSubmit}>
+                    <div style={{ marginBottom: '1.15rem' }}>
+                      <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.2rem' }}>
+                        <span>{t('reg_mobile_label', 'Registered Mobile or Citizen ID')}</span>
+                        <span style={{ color: 'var(--slate-400)', fontWeight: 400, fontSize: '0.72rem' }}>Demo: 9876543210</span>
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <Phone size={16} color="var(--slate-400)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+                        <input 
+                          type="text" 
+                          className="form-input" 
+                          placeholder="e.g. 9876543210 or CIT-2026-9042"
+                          value={citizenId}
+                          onChange={(e) => setCitizenId(e.target.value)}
+                          style={{ paddingLeft: '2.5rem' }}
+                          required
+                        />
+                      </div>
+                    </div>
 
-                <button 
-                  type="submit" 
-                  className="btn btn-primary"
-                  style={{ width: '100%', padding: '0.75rem', justifyContent: 'center', marginBottom: '1.25rem' }}
-                  disabled={isSubmitting}
-                >
-                  <span>{isSubmitting ? 'Authenticating...' : 'Sign In as Citizen'}</span>
-                  <ArrowRight size={16} />
-                </button>
+                    <div style={{ marginBottom: '1.25rem' }}>
+                      <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.2rem' }}>
+                        <span>{t('reg_passcode_label', 'Passcode / Mock OTP')}</span>
+                        <span style={{ color: 'var(--slate-400)', fontWeight: 400, fontSize: '0.72rem' }}>Demo: 123456</span>
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <KeyRound size={16} color="var(--slate-400)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+                        <input 
+                          type="password" 
+                          className="form-input" 
+                          placeholder="Enter 6-digit passcode"
+                          value={citizenPasscode}
+                          onChange={(e) => setCitizenPasscode(e.target.value)}
+                          style={{ paddingLeft: '2.5rem' }}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <button 
+                      type="submit" 
+                      className="btn btn-primary"
+                      style={{ width: '100%', padding: '0.75rem', justifyContent: 'center', marginBottom: '1.25rem' }}
+                      disabled={isSubmitting}
+                    >
+                      <span>{isSubmitting ? 'Authenticating...' : t('sign_in_citizen_btn', 'Sign In as Citizen')}</span>
+                      <ArrowRight size={16} />
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleCitizenRegister}>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label className="form-label">{t('full_name_label', 'Full Name')}</label>
+                      <input 
+                        type="text" 
+                        className="form-input" 
+                        placeholder="e.g. Sunita Devi"
+                        value={regName}
+                        onChange={(e) => setRegName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label className="form-label">{t('mobile_number_label', 'Mobile Number')}</label>
+                      <input 
+                        type="tel" 
+                        className="form-input" 
+                        placeholder="e.g. 9811223344"
+                        value={regMobile}
+                        onChange={(e) => setRegMobile(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label className="form-label">{t('create_pass_label', 'Create Password (min 6 characters)')}</label>
+                      <input 
+                        type="password" 
+                        className="form-input" 
+                        placeholder="Enter secure password"
+                        value={regPassword}
+                        onChange={(e) => setRegPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div style={{ marginBottom: '1.25rem' }}>
+                      <label className="form-label">{t('residential_ward_label', 'Residential Ward')}</label>
+                      <input 
+                        type="text" 
+                        className="form-input" 
+                        placeholder="e.g. Ward 42 (Indiranagar)"
+                        value={regWard}
+                        onChange={(e) => setRegWard(e.target.value)}
+                      />
+                    </div>
+                    <button 
+                      type="submit" 
+                      className="btn btn-primary"
+                      style={{ width: '100%', padding: '0.75rem', justifyContent: 'center', marginBottom: '1.25rem' }}
+                      disabled={isSubmitting}
+                    >
+                      <span>{isSubmitting ? 'Creating Account in Database...' : t('register_access_btn', 'Register & Access Portal')}</span>
+                      <ArrowRight size={16} />
+                    </button>
+                  </form>
+                )}
 
                 {/* Instant Demo Shortcut Card */}
                 <div style={{
@@ -372,14 +506,14 @@ export function LoginView({ onLoginSuccess, theme = 'light', toggleTheme }) {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                     <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--primary)' }}>
-                      ⚡ Instant Evaluator Access
+                      {t('instant_evaluator_access', '⚡ Instant Evaluator Access')}
                     </span>
                     <span className="badge badge-success" style={{ fontSize: '0.68rem', padding: '0.1rem 0.35rem' }}>
                       Ready
                     </span>
                   </div>
                   <p style={{ fontSize: '0.76rem', color: 'var(--slate-600)', marginBottom: '0.65rem', lineHeight: 1.4 }}>
-                    Test the complete citizen experience: file grievances, upload evidence, and track ticket status.
+                    {t('instant_evaluator_desc', 'Test the complete citizen experience: file grievances, upload evidence, and track ticket status.')}
                   </p>
                   <button
                     type="button"
@@ -387,21 +521,10 @@ export function LoginView({ onLoginSuccess, theme = 'light', toggleTheme }) {
                     onClick={() => handleQuickLogin('CITIZEN')}
                     style={{ width: '100%', justifyContent: 'center', whiteSpace: 'normal', height: 'auto', padding: '0.6rem 0.75rem', lineHeight: 1.35 }}
                   >
-                    <span>One-Click Login: Arun Kumar (Citizen)</span>
+                    <span>{t('one_click_citizen', 'One-Click Login: Arun Kumar (Citizen)')}</span>
                   </button>
                 </div>
-
-                {/* Statutory Privacy & Aadhaar Architecture Notice */}
-                <div style={{
-                  fontSize: '0.72rem',
-                  color: 'var(--slate-500)',
-                  lineHeight: 1.45,
-                  borderTop: '1px solid var(--slate-200)',
-                  paddingTop: '0.75rem'
-                }}>
-                  <strong>Privacy Safeguard Notice:</strong> Real Aadhaar authentication is a future statutory integration requiring UIDAI authorization. In compliance with DPDP Act, no raw Aadhaar numbers or biometrics are collected in this portal.
-                </div>
-              </form>
+              </div>
             )}
 
             {/* TAB 2: AUTHORITY / GOVERNMENT STAFF LOGIN */}
@@ -409,7 +532,7 @@ export function LoginView({ onLoginSuccess, theme = 'light', toggleTheme }) {
               <form onSubmit={handleAuthoritySubmit}>
                 <div style={{ marginBottom: '1.15rem' }}>
                   <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.2rem' }}>
-                    <span>Officer Badge ID or Official Email</span>
+                    <span>{t('officer_badge_label', 'Officer Badge ID or Official Email')}</span>
                     <span style={{ color: 'var(--slate-400)', fontWeight: 400, fontSize: '0.72rem' }}>Demo: KA-GOV-8821</span>
                   </label>
                   <div style={{ position: 'relative' }}>
@@ -428,7 +551,7 @@ export function LoginView({ onLoginSuccess, theme = 'light', toggleTheme }) {
 
                 <div style={{ marginBottom: '1.25rem' }}>
                   <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.2rem' }}>
-                    <span>Department Security Password</span>
+                    <span>{t('dept_password_label', 'Department Security Password')}</span>
                     <span style={{ color: 'var(--slate-400)', fontWeight: 400, fontSize: '0.72rem' }}>Demo: admin123</span>
                   </label>
                   <div style={{ position: 'relative' }}>
@@ -451,7 +574,7 @@ export function LoginView({ onLoginSuccess, theme = 'light', toggleTheme }) {
                   style={{ width: '100%', padding: '0.75rem', justifyContent: 'center', marginBottom: '1.25rem' }}
                   disabled={isSubmitting}
                 >
-                  <span>{isSubmitting ? 'Verifying Credentials...' : 'Sign In to Municipal Dispatch'}</span>
+                  <span>{isSubmitting ? 'Verifying Credentials...' : t('sign_in_dispatch_btn', 'Sign In to Municipal Dispatch')}</span>
                   <ArrowRight size={16} />
                 </button>
 
@@ -465,22 +588,30 @@ export function LoginView({ onLoginSuccess, theme = 'light', toggleTheme }) {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                     <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--accent-saffron-hover)' }}>
-                      ⚡ Authority Command Access
+                      {t('authority_command_access', '⚡ Authority Command Access')}
                     </span>
                     <span className="badge badge-warning" style={{ fontSize: '0.68rem', padding: '0.1rem 0.35rem' }}>
                       Supervisor
                     </span>
                   </div>
                   <p style={{ fontSize: '0.76rem', color: 'var(--slate-600)', marginBottom: '0.65rem', lineHeight: 1.4 }}>
-                    Access Authority Queue, review AI-verified tickets, assign field crews, inspect repair photos, and approve/reject closures.
+                    {t('authority_command_desc', 'Access Authority Queue, review AI-verified tickets, assign field crews, inspect repair photos, and approve/reject closures.')}
                   </p>
                   <button
                     type="button"
                     className="btn btn-warning btn-sm"
                     onClick={() => handleQuickLogin('AUTHORITY')}
-                    style={{ width: '100%', justifyContent: 'center', whiteSpace: 'normal', height: 'auto', padding: '0.6rem 0.75rem', lineHeight: 1.35 }}
+                    style={{ width: '100%', justifyContent: 'center', whiteSpace: 'normal', height: 'auto', padding: '0.6rem 0.75rem', lineHeight: 1.35, marginBottom: '0.5rem' }}
                   >
-                    <span>One-Click Login: Rajesh Varma (Zonal Officer)</span>
+                    <span>{t('one_click_officer', 'One-Click Login: Rajesh Varma (Zonal Officer)')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-subtle btn-sm"
+                    onClick={() => handleQuickLogin('ADMIN')}
+                    style={{ width: '100%', justifyContent: 'center', whiteSpace: 'normal', height: 'auto', padding: '0.5rem 0.75rem', border: '1px solid var(--slate-300)' }}
+                  >
+                    <span>{t('one_click_admin', 'One-Click Login: Commissioner Sharma (Admin)')}</span>
                   </button>
                 </div>
 
@@ -492,7 +623,7 @@ export function LoginView({ onLoginSuccess, theme = 'light', toggleTheme }) {
                   borderTop: '1px solid var(--slate-200)',
                   paddingTop: '0.75rem'
                 }}>
-                  <strong>Municipal Security Notice:</strong> All administrative dispatch actions, crew assignments, and resolution sign-offs are logged into the immutable operational audit ledger.
+                  {t('municipal_security_notice', 'Municipal Security Notice: All administrative dispatch actions, crew assignments, and resolution sign-offs are logged into the immutable operational audit ledger.')}
                 </div>
               </form>
             )}

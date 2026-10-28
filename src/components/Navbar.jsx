@@ -15,6 +15,7 @@ import {
   LogOut,
   UserCheck,
   ShieldCheck,
+  Users,
   Menu,
   X
 } from 'lucide-react'
@@ -30,7 +31,8 @@ export function Navbar({
   onCheckDeadlines,
   overdueCount = 0,
   theme = 'light',
-  toggleTheme
+  toggleTheme,
+  backendHealth
 }) {
   const { lang, setLang, t } = useLanguage()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -51,8 +53,29 @@ export function Navbar({
   return (
     <>
       {/* Top Brand Banner */}
-      <div className="prototype-banner">
+      <div className="prototype-banner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
         <span>{t('brand_tagline', 'NAGARAKSHAK — Smarter Cities, Safer Communities.')}</span>
+
+        {/* Real Live Database & Backend Status Pill (Never Hardcoded) */}
+        <span style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.35rem',
+          marginLeft: '0.5rem',
+          fontSize: '0.72rem',
+          fontWeight: 700,
+          background: backendHealth?.ok ? 'rgba(34, 197, 94, 0.22)' : 'rgba(239, 68, 68, 0.25)',
+          border: backendHealth?.ok ? '1px solid rgba(34, 197, 94, 0.6)' : '1px solid rgba(239, 68, 68, 0.6)',
+          color: backendHealth?.ok ? '#86efac' : '#fca5a5',
+          borderRadius: '9999px',
+          padding: '0.12rem 0.6rem'
+        }} title={backendHealth?.ok ? `Database: ${backendHealth.data?.database?.engine || 'Connected'} (${backendHealth.data?.database?.complaintsCount || 0} complaints, ${backendHealth.data?.database?.usersCount || 0} users)` : 'Backend server unreachable'}>
+          <span style={{
+            width: '7px', height: '7px', borderRadius: '50%',
+            background: backendHealth?.ok ? '#22c55e' : '#ef4444'
+          }} />
+          {backendHealth?.ok ? `${t('nav_sqlite_connected', 'SQLite Connected')} (${backendHealth.data?.database?.complaintsCount || 0})` : t('nav_backend_offline', 'Backend Offline')}
+        </span>
         {isAuthority && overdueCount > 0 && (
           <button 
             onClick={onCheckDeadlines}
@@ -115,7 +138,7 @@ export function Navbar({
                   onClick={() => handleNavigate('complaints')}
                 >
                   <FileText size={16} />
-                  <span>Authority Queue</span>
+                  <span>{t('nav_authority_queue', 'Authority Queue')}</span>
                 </button>
                 <button 
                   className={`nav-btn ${activeTab === 'report' ? 'active' : ''}`}
@@ -131,6 +154,13 @@ export function Navbar({
                   <Activity size={16} />
                   <span>{t('nav_audit', 'Audit Trail')}</span>
                 </button>
+                <button 
+                  className={`nav-btn ${activeTab === 'users' ? 'active' : ''}`}
+                  onClick={() => handleNavigate('users')}
+                >
+                  <Users size={16} />
+                  <span>{t('nav_access_directory', 'Access Directory')}</span>
+                </button>
               </>
             )}
 
@@ -142,14 +172,14 @@ export function Navbar({
                   onClick={() => handleNavigate('report')}
                 >
                   <PlusCircle size={16} />
-                  <span>File Grievance</span>
+                  <span>{t('nav_file_grievance', 'File Grievance')}</span>
                 </button>
                 <button 
                   className={`nav-btn ${activeTab === 'complaints' ? 'active' : ''}`}
                   onClick={() => handleNavigate('complaints')}
                 >
                   <FileText size={16} />
-                  <span>My Complaints & Tracking</span>
+                  <span>{t('nav_my_complaints', 'My Complaints & Tracking')}</span>
                 </button>
               </>
             )}
@@ -235,7 +265,7 @@ export function Navbar({
                 onClick={() => handleNavigate('report')}
               >
                 <PlusCircle size={14} />
-                <span>File Grievance</span>
+                <span>{t('nav_file_grievance', 'File Grievance')}</span>
               </button>
             )}
 
@@ -259,8 +289,11 @@ export function Navbar({
                 <span style={{ fontWeight: 600, color: 'var(--navy-900)', maxWidth: '110px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {currentUser.name}
                 </span>
-                <span className={`badge ${isCitizen ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem' }}>
-                  {isCitizen ? 'Citizen' : 'Officer'}
+                <span className={`badge ${
+                  isCitizen ? 'badge-primary' : 
+                  currentUser.role === 'ADMIN' ? 'badge-danger' : 'badge-warning'
+                }`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem' }}>
+                  {isCitizen ? t('role_citizen', 'Citizen') : (currentUser.role === 'ADMIN' ? t('role_admin', 'Admin') : t('role_officer', 'Officer'))}
                 </span>
               </div>
             )}
@@ -274,7 +307,7 @@ export function Navbar({
                 style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
               >
                 <LogOut size={14} />
-                <span>Logout</span>
+                <span>{t('nav_logout', 'Logout')}</span>
               </button>
             )}
 
@@ -322,7 +355,7 @@ export function Navbar({
                   </div>
                 </div>
                 <span className={`badge ${isCitizen ? 'badge-primary' : 'badge-warning'}`}>
-                  {isCitizen ? 'Citizen' : 'Officer'}
+                  {isCitizen ? t('role_citizen', 'Citizen') : (currentUser.role === 'ADMIN' ? t('role_admin', 'Admin') : t('role_officer', 'Officer'))}
                 </span>
               </div>
             )}
@@ -354,7 +387,7 @@ export function Navbar({
                     style={{ width: '100%', justifyContent: 'flex-start', padding: '0.65rem 0.85rem' }}
                   >
                     <FileText size={18} />
-                    <span>Authority Queue</span>
+                    <span>{t('nav_authority_queue', 'Authority Queue')}</span>
                   </button>
                   <button 
                     className={`nav-btn ${activeTab === 'report' ? 'active' : ''}`}
@@ -372,6 +405,14 @@ export function Navbar({
                     <Activity size={18} />
                     <span>{t('nav_audit', 'Audit Trail')}</span>
                   </button>
+                  <button 
+                    className={`nav-btn ${activeTab === 'users' ? 'active' : ''}`}
+                    onClick={() => handleNavigate('users')}
+                    style={{ width: '100%', justifyContent: 'flex-start', padding: '0.65rem 0.85rem' }}
+                  >
+                    <Users size={18} />
+                    <span>{t('nav_access_directory', 'Access Directory')}</span>
+                  </button>
                 </>
               )}
 
@@ -383,7 +424,7 @@ export function Navbar({
                     style={{ width: '100%', justifyContent: 'flex-start', padding: '0.65rem 0.85rem' }}
                   >
                     <PlusCircle size={18} />
-                    <span>File Grievance</span>
+                    <span>{t('nav_file_grievance', 'File Grievance')}</span>
                   </button>
                   <button 
                     className={`nav-btn ${activeTab === 'complaints' ? 'active' : ''}`}
@@ -391,7 +432,7 @@ export function Navbar({
                     style={{ width: '100%', justifyContent: 'flex-start', padding: '0.65rem 0.85rem' }}
                   >
                     <FileText size={18} />
-                    <span>My Complaints & Tracking</span>
+                    <span>{t('nav_my_complaints', 'My Complaints & Tracking')}</span>
                   </button>
                 </>
               )}
@@ -428,7 +469,7 @@ export function Navbar({
                   style={{ width: '100%', justifyContent: 'center', padding: '0.75rem' }}
                 >
                   <LogOut size={16} />
-                  <span>Sign Out / Logout ({currentUser.name})</span>
+                  <span>{t('nav_logout', 'Logout')} ({currentUser.name})</span>
                 </button>
               </div>
             )}

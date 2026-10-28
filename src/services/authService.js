@@ -1,17 +1,23 @@
 /**
  * NAGARAKSHAK — Centralized Authentication & Session Service
  * 
- * Manages user authentication, demo credentials, role-based access tokens,
- * and session state. Built to be decoupled from React UI components so
- * real OAuth2 / OpenID Connect / DigiLocker / JWT endpoints can replace
- * this service layer in production without altering UI views.
+ * Manages user authentication, registration, persistent session tokens,
+ * and role-based access control connected to the Express/SQLite backend.
  */
 
-import { USER_ROLES, KYC_STATUS, ACCOUNT_STATUS } from './schema.js'
+import { USER_ROLES, KYC_STATUS, ACCOUNT_STATUS } from './schema.js';
+import { 
+  apiLogin, 
+  apiRegister, 
+  apiLogout, 
+  apiGetMe, 
+  getStoredToken, 
+  setStoredToken 
+} from './apiService.js';
 
-const AUTH_STORAGE_KEY = 'nagarakshak_auth_session_v1'
+const AUTH_STORAGE_KEY = 'nagarakshak_auth_session_v1';
 
-// Pre-configured Verified Demo Accounts
+// Pre-configured Verified Demo Accounts for hackathon presentations
 export const DEMO_CREDENTIALS = {
   citizen: {
     role: USER_ROLES.CITIZEN,
@@ -35,231 +41,219 @@ export const DEMO_CREDENTIALS = {
     zone: 'East Zone - BBMP',
     email: 'officer@nagarakshak.demo',
     defaultPasscode: 'admin123'
+  },
+  admin: {
+    role: USER_ROLES.ADMIN,
+    officerId: 'ADM-BBMP-001',
+    badgeNumber: 'KA-ADMIN-01',
+    name: 'Commissioner S. Sharma',
+    department: 'Municipal Headquarters',
+    designation: 'Chief Municipal Administrator',
+    email: 'admin@nagarakshak.demo',
+    defaultPasscode: 'admin123'
   }
+};
+
+function normalizeUser(raw) {
+  if (!raw) return null;
+  const role = String(raw.role || 'CITIZEN').toUpperCase();
+  const normalizedRole = role.includes('CITIZEN') ? 'CITIZEN' : (role.includes('ADMIN') ? 'ADMIN' : 'AUTHORITY');
+
+  return {
+    userId: raw.id || raw.userId,
+    citizenId: raw.id || raw.citizenId || raw.userId,
+    officerId: raw.id || raw.officerId || raw.userId,
+    badgeNumber: raw.badge_number || raw.badgeNumber || null,
+    role: normalizedRole,
+    name: raw.name || 'User',
+    username: raw.username || raw.email || raw.phone,
+    email: raw.email || null,
+    phone: raw.phone || null,
+    maskedPhone: raw.phone ? `+91 ${raw.phone.slice(0, 5)}-XXXXX` : '+91 98765-XXXXX',
+    ward: raw.ward || 'Ward 42 (Indiranagar)',
+    department: raw.department || 'Municipal Operations Command',
+    designation: raw.designation || (normalizedRole === 'ADMIN' ? 'Chief Municipal Administrator' : (normalizedRole === 'AUTHORITY' ? 'Zonal Dispatch Officer' : 'Resident Citizen')),
+    kycStatus: KYC_STATUS.VERIFIED_MOCK,
+    accountStanding: ACCOUNT_STATUS.ACTIVE,
+    loginTime: new Date().toISOString()
+  };
 }
 
 class AuthService {
   constructor() {
-    this._listeners = new Set()
+    this._listeners = new Set();
   }
 
   /**
-   * Get the active authenticated session from storage
-   * @returns {Object|null} user session object or null if unauthenticated
+   * Get active authenticated session from local cache
    */
   getCurrentUser() {
     try {
-      const raw = localStorage.getItem(AUTH_STORAGE_KEY)
-      if (!raw) return null
-      const parsed = JSON.parse(raw)
-      if (!parsed || !parsed.userId) return null
-
-      // Normalize role for robust equality checks
-      if (parsed.role) {
-        const r = String(parsed.role).toUpperCase()
-        parsed.role = r.includes('CITIZEN') ? 'CITIZEN' : 'AUTHORITY'
-      } else {
-        parsed.role = 'AUTHORITY'
-      }
-
-      return parsed
-    } catch (err) {
-      console.warn('Error reading auth session from storage:', err)
-      return null
+      const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed.userId) return null;
+      return parsed;
+    } catch {
+      return null;
     }
   }
 
-  /**
-   * Checks if user has an active session
-   * @returns {boolean}
-   */
   isAuthenticated() {
-    return this.getCurrentUser() !== null
+    return this.getCurrentUser() !== null && Boolean(getStoredToken());
   }
 
-  /**
-   * Checks if user has Citizen role
-   * @param {Object} [user] Optional user object, defaults to current session
-   * @returns {boolean}
-   */
   isCitizen(user = this.getCurrentUser()) {
-    if (!user) return false
-    return String(user.role).toUpperCase() === 'CITIZEN'
+    if (!user) return false;
+    return String(user.role).toUpperCase() === 'CITIZEN';
   }
 
-  /**
-   * Checks if user has Authority/Staff role
-   * @param {Object} [user] Optional user object, defaults to current session
-   * @returns {boolean}
-   */
   isAuthority(user = this.getCurrentUser()) {
-    if (!user) return false
-    const r = String(user.role).toUpperCase()
-    return r === 'AUTHORITY' || r === 'ADMIN' || r === 'AUTHORITY_DISPATCHER'
+    if (!user) return false;
+    const r = String(user.role).toUpperCase();
+    return r === 'AUTHORITY' || r === 'ADMIN';
+  }
+
+  isAdmin(user = this.getCurrentUser()) {
+    if (!user) return false;
+    return String(user.role).toUpperCase() === 'ADMIN';
   }
 
   /**
-   * Citizen Login Handler
-   * In demo: Accepts phone/email and passcode/OTP.
-   * In production: Calls POST /api/v1/auth/citizen-login or DigiLocker OAuth2
+   * Real Citizen Login via Backend API
    */
-  loginAsCitizen({ identifier, passcode }) {
-    const trimmedId = (identifier || '').trim().toLowerCase()
-    const trimmedPass = (passcode || '').trim()
+  async loginAsCitizen({ identifier, passcode }) {
+    const res = await apiLogin({
+      identifier: identifier.trim(),
+      password: passcode.trim()
+    });
 
-    // Demo validation: accept demo mobile, demo email, or prefilled credentials
-    const isMatch = 
-      trimmedId === DEMO_CREDENTIALS.citizen.mobile ||
-      trimmedId === DEMO_CREDENTIALS.citizen.email.toLowerCase() ||
-      trimmedId === DEMO_CREDENTIALS.citizen.citizenId.toLowerCase() ||
-      trimmedId === 'citizen' ||
-      trimmedId === 'arun'
-
-    if (!isMatch && trimmedId.length > 0) {
-      // Allow custom citizen registration/login in demo
-      const customCitizen = {
-        userId: `CIT-${Date.now().toString().slice(-4)}`,
-        citizenId: `CIT-${Date.now().toString().slice(-4)}`,
-        role: USER_ROLES.CITIZEN,
-        name: identifier.includes('@') ? identifier.split('@')[0] : `Citizen (${identifier})`,
-        maskedPhone: identifier.includes('@') ? '+91 98765-XXXXX' : `+91 ${identifier.slice(0, 5)}-XXXXX`,
-        email: identifier.includes('@') ? identifier : `${identifier}@citizen.nagarakshak.gov.in`,
-        ward: 'Ward 42 (Indiranagar)',
-        kycStatus: KYC_STATUS.VERIFIED_MOCK,
-        accountStanding: ACCOUNT_STATUS.ACTIVE,
-        loginTime: new Date().toISOString()
-      }
-      return this._saveSession(customCitizen)
+    if (!res.success || !res.user) {
+      throw new Error(res.error || 'Authentication failed.');
     }
 
-    const session = {
-      userId: DEMO_CREDENTIALS.citizen.citizenId,
-      citizenId: DEMO_CREDENTIALS.citizen.citizenId,
-      role: USER_ROLES.CITIZEN,
-      name: DEMO_CREDENTIALS.citizen.name,
-      maskedPhone: DEMO_CREDENTIALS.citizen.maskedPhone,
-      email: DEMO_CREDENTIALS.citizen.email,
-      ward: DEMO_CREDENTIALS.citizen.ward,
-      kycStatus: DEMO_CREDENTIALS.citizen.kycStatus,
-      accountStanding: DEMO_CREDENTIALS.citizen.accountStanding,
-      loginTime: new Date().toISOString()
-    }
-
-    return this._saveSession(session)
+    const session = normalizeUser(res.user);
+    return this._saveSession(session);
   }
 
   /**
-   * Authority / Government Staff Login Handler
-   * In demo: Accepts staff badge or email and password.
-   * In production: Calls POST /api/v1/auth/authority-login with 2FA
+   * Real Citizen Registration via Backend API
    */
-  loginAsAuthority({ badgeOrEmail, password }) {
-    const trimmedBadge = (badgeOrEmail || '').trim().toLowerCase()
-    const trimmedPass = (password || '').trim()
+  async registerCitizen({ username, password, name, phone, email, ward }) {
+    const res = await apiRegister({
+      username: username.trim(),
+      password: password.trim(),
+      name: name.trim(),
+      phone: phone ? phone.trim() : undefined,
+      email: email ? email.trim() : undefined,
+      ward: ward ? ward.trim() : undefined,
+    });
 
-    const isMatch = 
-      trimmedBadge === DEMO_CREDENTIALS.authority.badgeNumber.toLowerCase() ||
-      trimmedBadge === DEMO_CREDENTIALS.authority.officerId.toLowerCase() ||
-      trimmedBadge === DEMO_CREDENTIALS.authority.email.toLowerCase() ||
-      trimmedBadge === 'officer' ||
-      trimmedBadge === 'admin'
-
-    if (!isMatch && trimmedBadge.length > 0) {
-      // Custom authority staff
-      const customAuthority = {
-        userId: `OFF-${Date.now().toString().slice(-4)}`,
-        officerId: `OFF-${Date.now().toString().slice(-4)}`,
-        badgeNumber: `KA-GOV-${Date.now().toString().slice(-4)}`,
-        role: USER_ROLES.AUTHORITY,
-        name: badgeOrEmail.includes('@') ? badgeOrEmail.split('@')[0] : `Officer (${badgeOrEmail})`,
-        department: 'Municipal Operations Command',
-        designation: 'Municipal Officer',
-        zone: 'Central Zone - Municipal Admin',
-        email: badgeOrEmail.includes('@') ? badgeOrEmail : `${badgeOrEmail}@nagarakshak.gov.in`,
-        loginTime: new Date().toISOString()
-      }
-      return this._saveSession(customAuthority)
+    if (!res.success || !res.user) {
+      throw new Error(res.error || 'Registration failed.');
     }
 
-    const session = {
-      userId: DEMO_CREDENTIALS.authority.officerId,
-      officerId: DEMO_CREDENTIALS.authority.officerId,
-      badgeNumber: DEMO_CREDENTIALS.authority.badgeNumber,
-      role: USER_ROLES.AUTHORITY,
-      name: DEMO_CREDENTIALS.authority.name,
-      department: DEMO_CREDENTIALS.authority.department,
-      designation: DEMO_CREDENTIALS.authority.designation,
-      zone: DEMO_CREDENTIALS.authority.zone,
-      email: DEMO_CREDENTIALS.authority.email,
-      loginTime: new Date().toISOString()
-    }
-
-    return this._saveSession(session)
+    const session = normalizeUser(res.user);
+    return this._saveSession(session);
   }
 
   /**
-   * Instant One-Click Demo Login
-   * @param {'CITIZEN'|'AUTHORITY'} roleType 
+   * Real Authority / Officer Login via Backend API
    */
-  quickDemoLogin(roleType) {
-    const r = String(roleType).toUpperCase()
+  async loginAsAuthority({ badgeOrEmail, password }) {
+    const res = await apiLogin({
+      identifier: badgeOrEmail.trim(),
+      password: password.trim()
+    });
+
+    if (!res.success || !res.user) {
+      throw new Error(res.error || 'Authentication failed.');
+    }
+
+    const session = normalizeUser(res.user);
+    return this._saveSession(session);
+  }
+
+  /**
+   * One-Click Demo Login using Real Backend Seed Accounts
+   */
+  async quickDemoLogin(roleType) {
+    const r = String(roleType).toUpperCase();
     if (r === 'CITIZEN') {
       return this.loginAsCitizen({
         identifier: DEMO_CREDENTIALS.citizen.mobile,
         passcode: DEMO_CREDENTIALS.citizen.defaultPasscode
-      })
+      });
+    } else if (r === 'ADMIN') {
+      return this.loginAsAuthority({
+        badgeOrEmail: DEMO_CREDENTIALS.admin.badgeNumber,
+        password: DEMO_CREDENTIALS.admin.defaultPasscode
+      });
     } else {
       return this.loginAsAuthority({
         badgeOrEmail: DEMO_CREDENTIALS.authority.badgeNumber,
         password: DEMO_CREDENTIALS.authority.defaultPasscode
-      })
+      });
     }
   }
 
   /**
-   * Log out active session
-   * Clears only session authentication state; does NOT touch complaint or audit data.
+   * Real Session Verification against Backend
    */
-  logout() {
+  async syncSessionWithBackend() {
     try {
-      localStorage.removeItem(AUTH_STORAGE_KEY)
-      localStorage.removeItem('nagarakshak_auth_session')
-      localStorage.removeItem('nagaraksha_auth_session')
-      localStorage.removeItem('civicfix_session')
-      sessionStorage.clear()
-    } catch (err) {
-      console.warn('Error clearing auth session:', err)
+      const token = getStoredToken();
+      if (!token) {
+        this.logout();
+        return null;
+      }
+      const remoteUser = await apiGetMe();
+      if (!remoteUser) {
+        this.logout();
+        return null;
+      }
+      const session = normalizeUser(remoteUser);
+      return this._saveSession(session);
+    } catch {
+      // If server unreachable, keep existing session if present
+      return this.getCurrentUser();
     }
-    this._notify(null)
-    return true
   }
 
   /**
-   * Save session to storage and notify listeners
+   * Real Logout via Backend API
    */
+  async logout() {
+    try {
+      await apiLogout().catch(() => {});
+    } finally {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      setStoredToken(null);
+      this._notify(null);
+    }
+    return true;
+  }
+
   _saveSession(sessionData) {
     try {
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(sessionData))
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(sessionData));
     } catch (err) {
-      console.warn('Failed to persist auth session:', err)
+      console.warn('Failed to persist auth session:', err);
     }
-    this._notify(sessionData)
-    return sessionData
+    this._notify(sessionData);
+    return sessionData;
   }
 
-  /**
-   * Subscribe to auth changes
-   */
   subscribe(listener) {
-    this._listeners.add(listener)
-    return () => this._listeners.delete(listener)
+    this._listeners.add(listener);
+    return () => this._listeners.delete(listener);
   }
 
   _notify(session) {
     this._listeners.forEach(fn => {
-      try { fn(session) } catch (e) {}
-    })
+      try { fn(session); } catch (e) {}
+    });
   }
 }
 
-export const authService = new AuthService()
+export const authService = new AuthService();

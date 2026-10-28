@@ -227,11 +227,11 @@ export function ReportIssueView({
     e.preventDefault()
     const errs = {}
 
-    if (!title.trim()) errs.title = 'Please provide a clear complaint title'
+    if (!title.trim()) errs.title = t('err_title_req', 'Please provide a clear complaint title')
     if (!description.trim() || description.length < 15) {
-      errs.description = 'Please provide at least 15 characters describing the issue'
+      errs.description = t('err_desc_min', 'Please provide at least 15 characters describing the issue')
     }
-    if (!area.trim()) errs.area = 'Please provide an area or landmark'
+    if (!area.trim()) errs.area = t('err_area_req', 'Please provide an area or landmark')
 
     if (Object.keys(errs).length > 0) {
       setErrors(errs)
@@ -501,7 +501,7 @@ export function ReportIssueView({
               <input 
                 type="text" 
                 className="form-input" 
-                placeholder="e.g. Sector 4 Market Main Road, near Metro Pillar 142"
+                placeholder={t('place_area_landmark', 'e.g. Sector 4 Market Main Road, near Metro Pillar 142')}
                 value={area}
                 onChange={(e) => setArea(e.target.value)}
               />
@@ -526,7 +526,7 @@ export function ReportIssueView({
               <textarea 
                 className="form-textarea" 
                 rows="4"
-                placeholder="Describe the problem, severity, hazards, or impact on traffic/residents..."
+                placeholder={t('place_desc_details', 'Describe the problem, severity, hazards, or impact on traffic/residents...')}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />

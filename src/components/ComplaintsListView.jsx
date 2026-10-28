@@ -80,13 +80,13 @@ export function ComplaintsListView({
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
             <h1 style={{ fontSize: '1.85rem' }}>
-              {isCitizen ? 'Civic Grievance Tracker' : t('board_title')}
+              {isCitizen ? t('board_title_citizen', 'Civic Grievance Tracker') : t('board_title')}
             </h1>
             <span className="badge badge-neutral">{filteredComplaints.length} {t('records')}</span>
           </div>
           <p style={{ color: 'var(--slate-500)', fontSize: '0.9rem' }}>
             {isCitizen 
-              ? 'Track real-time status of your grievances and inspect open community civic reports.' 
+              ? t('board_sub_citizen', 'Track real-time status of your grievances and inspect open community civic reports.')
               : t('board_sub')}
           </p>
         </div>
@@ -108,7 +108,7 @@ export function ComplaintsListView({
                 onClick={() => setCitizenScope('ALL')}
                 style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
               >
-                All Issues ({complaints.length})
+                {t('filter_all_issues', 'All Issues')} ({complaints.length})
               </button>
               <button 
                 type="button"
@@ -116,7 +116,7 @@ export function ComplaintsListView({
                 onClick={() => setCitizenScope('MY')}
                 style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
               >
-                My Complaints ({complaints.filter(c => c.citizenId === currentUser.citizenId || (!c.isDemo && c.citizenId?.startsWith('CIT'))).length})
+                {t('filter_my_complaints', 'My Complaints')} ({complaints.filter(c => c.citizenId === currentUser.citizenId || (!c.isDemo && c.citizenId?.startsWith('CIT'))).length})
               </button>
             </div>
           )}
@@ -126,7 +126,7 @@ export function ComplaintsListView({
               className={`btn btn-sm ${viewMode === 'grid' ? 'btn-primary' : 'btn-subtle'}`}
               onClick={() => setViewMode('grid')}
               style={{ padding: '0.35rem 0.6rem' }}
-              title="Card View"
+              title={t('view_card', 'Card View')}
             >
               <Grid size={15} />
             </button>
@@ -134,7 +134,7 @@ export function ComplaintsListView({
               className={`btn btn-sm ${viewMode === 'table' ? 'btn-primary' : 'btn-subtle'}`}
               onClick={() => setViewMode('table')}
               style={{ padding: '0.35rem 0.6rem' }}
-              title="Table View"
+              title={t('view_table', 'Table View')}
             >
               <List size={15} />
             </button>
@@ -145,7 +145,7 @@ export function ComplaintsListView({
             onClick={() => setActiveTab('report')}
           >
             <PlusCircle size={16} />
-            <span>{t('nav_file_complaint')}</span>
+            <span>{isCitizen ? t('nav_file_grievance', 'File Grievance') : t('nav_file_complaint', 'File Complaint')}</span>
           </button>
         </div>
       </div>

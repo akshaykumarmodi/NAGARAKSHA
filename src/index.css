@@ -420,6 +420,34 @@ code {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 1.5rem;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 0.85rem;
+  }
+}
+
+/* Responsive Table Container */
+.table-responsive-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--slate-200);
+}
+
+.table-responsive-container::-webkit-scrollbar {
+  height: 6px;
+}
+.table-responsive-container::-webkit-scrollbar-track {
+  background: var(--bg-subtle);
+}
+.table-responsive-container::-webkit-scrollbar-thumb {
+  background: var(--slate-300);
+  border-radius: 4px;
 }
 
 /* ==========================================================================
@@ -1156,6 +1184,11 @@ code {
     opacity: 1;
     transform: scale(1) translateY(0);
   }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .modal-header {

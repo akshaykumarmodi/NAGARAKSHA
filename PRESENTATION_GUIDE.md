@@ -1,3 +1,4 @@
+
 # CivicFix AI — Hackathon Pitch Deck & Demo Script 🎤
 > **For the 3-Student Beginner Team (12-Hour Hackathon)**
 

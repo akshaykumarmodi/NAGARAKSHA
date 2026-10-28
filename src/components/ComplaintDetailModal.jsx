@@ -55,6 +55,11 @@ export function ComplaintDetailModal({
   const [rejectReason, setRejectReason] = useState('')
   const [feedbackComment, setFeedbackComment] = useState('')
 
+  // Reopen with evidence state (for resolved complaints)
+  const [showReopenBox, setShowReopenBox] = useState(false)
+  const [reopenReason, setReopenReason] = useState('')
+  const [reopenPhoto, setReopenPhoto] = useState(SAMPLE_IMAGES.pothole)
+
   // Reassign department state
   const [isReassigning, setIsReassigning] = useState(false)
   const [selectedDept, setSelectedDept] = useState(complaint.department || 'General Civic Services')
@@ -254,6 +259,66 @@ export function ComplaintDetailModal({
 
     setShowRejectBox(false)
     setRejectReason('')
+  }
+
+  // Handler: Reopen resolved ticket with evidence
+  const handleReopenWithEvidence = (e) => {
+    e.preventDefault()
+    if (!reopenReason.trim()) return
+
+    const now = new Date().toISOString()
+    const actorName = currentUser?.name || 'Concerned Citizen'
+    const actorRole = isCitizen ? USER_ROLES.CITIZEN : USER_ROLES.AUTHORITY
+
+    const newEvidence = reopenPhoto ? [{
+      id: `EVD-REOPEN-${Date.now()}`,
+      complaintId: complaint.id,
+      fileName: 'reopen_evidence.jpg',
+      fileType: 'image/jpeg',
+      url: reopenPhoto,
+      storageDriver: 'demo_inline',
+      uploadedBy: actorName,
+      uploadedAt: now,
+      verificationStatus: 'Reopened Dispute Evidence'
+    }] : []
+
+    const historyEntry = createStatusHistoryEntry({
+      complaintId: complaint.id,
+      fromStatus: complaint.status,
+      toStatus: COMPLAINT_STATUS.REOPENED,
+      changedBy: actorName,
+      actorRole: actorRole,
+      reason: `Evidence-based Reopening: "${reopenReason.trim()}". Returned for departmental reassessment.`,
+      timestamp: now
+    })
+
+    const updated = {
+      ...complaint,
+      status: COMPLAINT_STATUS.REOPENED,
+      evidence: [...(complaint.evidence || []), ...newEvidence],
+      resolutionData: {
+        ...(complaint.resolutionData || {}),
+        status: 'Reopened',
+        officialDecision: null,
+        reopenedAt: now,
+        reopenedBy: actorName,
+        reopenedReason: reopenReason.trim(),
+        reopenedEvidencePhotoUrl: reopenPhoto || null
+      },
+      statusHistory: [...(complaint.statusHistory || []), historyEntry]
+    }
+
+    onUpdateComplaint(updated)
+    onAddAuditLog({
+      complaintId: complaint.id,
+      type: 'TICKET_REOPENED',
+      actor: actorName,
+      title: 'Ticket Reopened with Evidence',
+      description: `Dispute registered: "${reopenReason.trim()}". New photo evidence attached. Reopened for field reassessment.`
+    })
+
+    setShowReopenBox(false)
+    setReopenReason('')
   }
 
   // Handler: Escalate ticket manually
@@ -654,6 +719,51 @@ export function ComplaintDetailModal({
                     </div>
                   </div>
                 </div>
+
+                {/* Evidence-Based Reopening Action */}
+                {!showReopenBox ? (
+                  <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--success-border)', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button 
+                      className="btn btn-outline-danger btn-sm"
+                      onClick={() => setShowReopenBox(true)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem' }}
+                    >
+                      <RotateCcw size={14} />
+                      <span>{t('reopen_issue_persists', 'Issue Persists? Reopen with Evidence')}</span>
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleReopenWithEvidence} style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--danger-border)', background: 'var(--danger-bg)', padding: '0.85rem', borderRadius: 'var(--radius-sm)' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--danger)', fontSize: '0.85rem', marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <RotateCcw size={15} />
+                      <span>{t('reopen_evidence_title', 'Evidence-Based Reopening')}</span>
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--slate-600)', marginBottom: '0.5rem', lineHeight: 1.4 }}>
+                      {t('reopen_evidence_desc', 'If the issue was not resolved properly or has reappeared, explain the problem and submit evidence to reopen this ticket.')}
+                    </p>
+                    <textarea 
+                      className="form-textarea"
+                      rows="2"
+                      placeholder={t('reopen_reason_place', 'e.g. Patch broke open again after heavy rainfall; asphalt washed away...')}
+                      value={reopenReason}
+                      onChange={(e) => setReopenReason(e.target.value)}
+                      required
+                      style={{ marginBottom: '0.5rem', width: '100%', fontSize: '0.82rem' }}
+                    />
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <button type="submit" className="btn btn-danger btn-sm">
+                        {t('confirm_reopen_evidence', 'Confirm Reopening with Evidence')}
+                      </button>
+                      <button 
+                        type="button" 
+                        className="btn btn-subtle btn-sm"
+                        onClick={() => { setShowReopenBox(false); setReopenReason('') }}
+                      >
+                        {t('cancel', 'Cancel')}
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
             )}
 
@@ -727,7 +837,7 @@ export function ComplaintDetailModal({
                   )
                 ) : (
                   <div style={{ background: 'var(--info-bg)', border: '1px solid var(--info-border)', borderRadius: 'var(--radius-sm)', padding: '0.65rem 0.85rem', fontSize: '0.82rem', color: 'var(--info)' }}>
-                    🕒 <strong>Pending Official Sign-off:</strong> Field repair proof has been submitted by the assigned department and is currently undergoing supervisory review.
+                    🕒 <strong>{t('pending_signoff_notice', 'Pending Official Sign-off: Field repair proof has been submitted by the assigned department and is currently undergoing supervisory review.')}</strong>
                   </div>
                 )}
               </div>

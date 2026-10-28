@@ -245,13 +245,18 @@ export function LoginView({ onLoginSuccess, theme = 'light', toggleTheme }) {
           }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.85rem' }}>
               <div style={{
-                background: 'rgba(255, 255, 255, 0.08)',
-                padding: '0.65rem',
-                borderRadius: '50%',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                display: 'inline-flex'
+                background: 'linear-gradient(135deg, rgba(217, 119, 6, 0.16) 0%, rgba(15, 29, 56, 0.7) 100%)',
+                padding: '0.75rem',
+                borderRadius: '16px',
+                border: '1.5px solid rgba(217, 119, 6, 0.4)',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3), 0 0 16px rgba(217, 119, 6, 0.15)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '64px',
+                height: '64px'
               }}>
-                <NagarakshakLogo size={44} />
+                <NagarakshakLogo size={46} />
               </div>
             </div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { 
   LayoutDashboard, 
   FileText, 
@@ -11,13 +11,14 @@ import {
   AlertTriangle, 
   Sun, 
   Moon, 
-  Languages,
-  LogOut,
-  UserCheck,
-  ShieldCheck,
-  Users,
-  Menu,
-  X
+  Languages, 
+  LogOut, 
+  UserCheck, 
+  ShieldCheck, 
+  Users, 
+  Menu, 
+  X,
+  ChevronDown
 } from 'lucide-react'
 import { NagarakshakLogo } from './NagarakshakLogo'
 import { useLanguage } from '../utils/LanguageContext'
@@ -36,6 +37,8 @@ export function Navbar({
 }) {
   const { lang, setLang, t } = useLanguage()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false)
+  const moreRef = useRef(null)
 
   const isCitizen = currentUser && String(currentUser.role).toUpperCase() === 'CITIZEN'
   const isAuthority = currentUser && !isCitizen
@@ -43,17 +46,30 @@ export function Navbar({
   const handleNavigate = (tab) => {
     setActiveTab(tab)
     setMobileMenuOpen(false)
+    setMoreMenuOpen(false)
   }
 
   const handleMobileLogout = () => {
     setMobileMenuOpen(false)
+    setMoreMenuOpen(false)
     onLogout()
   }
+
+  // Close More dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (moreRef.current && !moreRef.current.contains(e.target)) {
+        setMoreMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   return (
     <>
       {/* Top Brand Banner */}
-      <div className="prototype-banner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+      <div className="prototype-banner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0.4rem', padding: '0.35rem 0.85rem' }}>
         <span>{t('brand_tagline', 'NAGARAKSHAK — Smarter Cities, Safer Communities.')}</span>
 
         {/* Real Live Database & Backend Status Pill (Never Hardcoded) */}
@@ -74,7 +90,9 @@ export function Navbar({
             width: '7px', height: '7px', borderRadius: '50%',
             background: backendHealth?.ok ? '#22c55e' : '#ef4444'
           }} />
-          {backendHealth?.ok ? `${t('nav_sqlite_connected', 'SQLite Connected')} (${backendHealth.data?.database?.complaintsCount || 0})` : t('nav_backend_offline', 'Backend Offline')}
+          {backendHealth?.ok 
+            ? `${backendHealth.data?.database?.engine || 'Live DB'} • ${backendHealth.data?.database?.complaintsCount || 0} ${t('nav_complaints_count', 'Complaints')}` 
+            : t('nav_backend_offline', 'Backend Offline')}
         </span>
         {isAuthority && overdueCount > 0 && (
           <button 
@@ -105,7 +123,7 @@ export function Navbar({
           {/* Brand Wordmark with mandatory final K */}
           <div className="nav-brand" onClick={() => handleNavigate('home')}>
             <div className="brand-icon">
-              <NagarakshakLogo size={30} />
+              <NagarakshakLogo size={28} />
             </div>
             <div>
               <div className="brand-title">NAGARA<span style={{ color: 'var(--accent-saffron)' }}>KSHAK</span></div>
@@ -119,48 +137,86 @@ export function Navbar({
               className={`nav-btn ${activeTab === 'home' ? 'active' : ''}`}
               onClick={() => handleNavigate('home')}
             >
-              <Home size={16} />
+              <Home size={15} />
               <span>{t('nav_overview', 'Overview')}</span>
             </button>
 
-            {/* Authority-Only Links */}
+            {/* Authority Links (Primary + More Dropdown) */}
             {isAuthority && (
               <>
                 <button 
                   className={`nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
                   onClick={() => handleNavigate('dashboard')}
                 >
-                  <LayoutDashboard size={16} />
+                  <LayoutDashboard size={15} />
                   <span>{t('nav_dashboard', 'Dashboard')}</span>
                 </button>
                 <button 
                   className={`nav-btn ${activeTab === 'complaints' ? 'active' : ''}`}
                   onClick={() => handleNavigate('complaints')}
                 >
-                  <FileText size={16} />
+                  <FileText size={15} />
                   <span>{t('nav_authority_queue', 'Authority Queue')}</span>
                 </button>
                 <button 
                   className={`nav-btn ${activeTab === 'report' ? 'active' : ''}`}
                   onClick={() => handleNavigate('report')}
                 >
-                  <PlusCircle size={16} />
+                  <PlusCircle size={15} />
                   <span>{t('nav_report', 'Report Issue')}</span>
                 </button>
-                <button 
-                  className={`nav-btn ${activeTab === 'audit' ? 'active' : ''}`}
-                  onClick={() => handleNavigate('audit')}
-                >
-                  <Activity size={16} />
-                  <span>{t('nav_audit', 'Audit Trail')}</span>
-                </button>
-                <button 
-                  className={`nav-btn ${activeTab === 'users' ? 'active' : ''}`}
-                  onClick={() => handleNavigate('users')}
-                >
-                  <Users size={16} />
-                  <span>{t('nav_access_directory', 'Access Directory')}</span>
-                </button>
+
+                {/* More Dropdown for Secondary Authority Tools */}
+                <div className="nav-dropdown-wrapper" ref={moreRef}>
+                  <button 
+                    className={`nav-btn ${(activeTab === 'audit' || activeTab === 'users' || moreMenuOpen) ? 'active' : ''}`}
+                    onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                  >
+                    <span>{t('nav_more', 'More')}</span>
+                    <ChevronDown size={14} style={{ transform: moreMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+                  </button>
+
+                  {moreMenuOpen && (
+                    <div className="nav-dropdown-menu">
+                      <button 
+                        className={`nav-dropdown-item ${activeTab === 'audit' ? 'active' : ''}`}
+                        onClick={() => handleNavigate('audit')}
+                      >
+                        <Activity size={15} color="var(--primary)" />
+                        <span>{t('nav_audit', 'Audit Trail')}</span>
+                      </button>
+
+                      <button 
+                        className={`nav-dropdown-item ${activeTab === 'users' ? 'active' : ''}`}
+                        onClick={() => handleNavigate('users')}
+                      >
+                        <Users size={15} color="var(--accent-saffron)" />
+                        <span>{t('nav_access_directory', 'Access Directory')}</span>
+                      </button>
+
+                      <div style={{ height: '1px', background: 'var(--slate-200)', margin: '0.3rem 0' }} />
+
+                      <button 
+                        className="nav-dropdown-item"
+                        onClick={() => { onCheckDeadlines(); setMoreMenuOpen(false); }}
+                        title="Inspect timestamps and flag overdue tickets"
+                      >
+                        <Clock size={15} color="var(--navy-700)" />
+                        <span>{t('nav_check_slas', 'Check SLAs')}</span>
+                      </button>
+
+                      <button 
+                        className="nav-dropdown-item"
+                        onClick={() => { onResetClick(); setMoreMenuOpen(false); }}
+                        title="Reset all complaints and audit logs to demo defaults"
+                      >
+                        <RotateCcw size={15} color="var(--slate-500)" />
+                        <span>{t('nav_reset_demo', 'Reset Demo')}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             )}
 
@@ -171,37 +227,37 @@ export function Navbar({
                   className={`nav-btn ${activeTab === 'report' ? 'active' : ''}`}
                   onClick={() => handleNavigate('report')}
                 >
-                  <PlusCircle size={16} />
+                  <PlusCircle size={15} />
                   <span>{t('nav_file_grievance', 'File Grievance')}</span>
                 </button>
                 <button 
                   className={`nav-btn ${activeTab === 'complaints' ? 'active' : ''}`}
                   onClick={() => handleNavigate('complaints')}
                 >
-                  <FileText size={16} />
+                  <FileText size={15} />
                   <span>{t('nav_my_complaints', 'My Complaints & Tracking')}</span>
                 </button>
               </>
             )}
           </nav>
 
-          {/* Quick Actions & Toggles */}
+          {/* Quick Actions & Account Controls */}
           <div className="nav-actions">
             {/* 5-Language Switcher */}
             <div 
               style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                gap: '0.35rem', 
+                gap: '0.3rem', 
                 background: 'var(--bg-subtle)', 
                 border: '1px solid var(--slate-300)', 
                 borderRadius: 'var(--radius-md)', 
-                padding: '0.15rem 0.45rem',
-                height: '32px'
+                padding: '0.12rem 0.4rem',
+                height: '30px'
               }}
               title="Select Portal Language"
             >
-              <Languages size={14} color="var(--primary)" />
+              <Languages size={13} color="var(--primary)" />
               <select 
                 value={lang} 
                 onChange={(e) => setLang(e.target.value)}
@@ -209,7 +265,7 @@ export function Navbar({
                   background: 'transparent', 
                   border: 'none', 
                   color: 'var(--navy-900)', 
-                  fontSize: '0.8rem', 
+                  fontSize: '0.78rem', 
                   fontWeight: 700, 
                   cursor: 'pointer', 
                   outline: 'none'
@@ -217,10 +273,10 @@ export function Navbar({
                 aria-label="Select Language"
               >
                 <option value="en" style={{ background: 'var(--bg-card)', color: 'var(--navy-900)' }}>English</option>
-                <option value="hi" style={{ background: 'var(--bg-card)', color: 'var(--navy-900)' }}>हिन्दी (Hindi)</option>
-                <option value="pa" style={{ background: 'var(--bg-card)', color: 'var(--navy-900)' }}>ਪੰਜਾਬੀ (Punjabi)</option>
-                <option value="kn" style={{ background: 'var(--bg-card)', color: 'var(--navy-900)' }}>ಕನ್ನಡ (Kannada)</option>
-                <option value="te" style={{ background: 'var(--bg-card)', color: 'var(--navy-900)' }}>తెలుగు (Telugu)</option>
+                <option value="hi" style={{ background: 'var(--bg-card)', color: 'var(--navy-900)' }}>हिन्दी</option>
+                <option value="pa" style={{ background: 'var(--bg-card)', color: 'var(--navy-900)' }}>ਪੰਜਾਬੀ</option>
+                <option value="kn" style={{ background: 'var(--bg-card)', color: 'var(--navy-900)' }}>ಕನ್ನಡ</option>
+                <option value="te" style={{ background: 'var(--bg-card)', color: 'var(--navy-900)' }}>తెలుగు</option>
               </select>
             </div>
 
@@ -230,83 +286,58 @@ export function Navbar({
               onClick={toggleTheme}
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               aria-label="Toggle Theme"
-              style={{ gap: '0.35rem' }}
+              style={{ height: '30px', padding: '0 0.45rem' }}
             >
               {theme === 'dark' ? <Sun size={14} color="#f59e0b" /> : <Moon size={14} />}
-              <span className="desktop-only-inline">{theme === 'dark' ? t('nav_light', 'Light') : t('nav_dark', 'Dark')}</span>
             </button>
-
-            {/* Desktop Authority Actions */}
-            {isAuthority && (
-              <>
-                <button 
-                  className="btn btn-secondary btn-sm desktop-only"
-                  onClick={onCheckDeadlines}
-                  title="Inspect timestamps and flag overdue tickets"
-                >
-                  <Clock size={14} />
-                  <span>{t('nav_check_slas', 'Check SLAs')}</span>
-                </button>
-                <button 
-                  className="btn btn-subtle btn-sm desktop-only"
-                  onClick={onResetClick}
-                  title="Reset all complaints and audit logs to demo defaults"
-                >
-                  <RotateCcw size={14} />
-                  <span>{t('nav_reset_demo', 'Reset Demo')}</span>
-                </button>
-              </>
-            )}
-
-            {/* Desktop Citizen Action */}
-            {isCitizen && (
-              <button 
-                className="btn btn-primary btn-sm desktop-only"
-                onClick={() => handleNavigate('report')}
-              >
-                <PlusCircle size={14} />
-                <span>{t('nav_file_grievance', 'File Grievance')}</span>
-              </button>
-            )}
 
             {/* Desktop User Session Badge */}
             {currentUser && (
               <div className="desktop-only" style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.4rem',
+                gap: '0.35rem',
                 background: 'var(--bg-subtle)',
-                padding: '0.25rem 0.55rem',
+                padding: '0.2rem 0.5rem',
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--slate-300)',
                 fontSize: '0.78rem'
               }}>
                 {isCitizen ? (
-                  <UserCheck size={14} color="var(--primary)" />
+                  <UserCheck size={13} color="var(--primary)" />
                 ) : (
-                  <ShieldCheck size={14} color="var(--accent-saffron)" />
+                  <ShieldCheck size={13} color="var(--accent-saffron)" />
                 )}
-                <span style={{ fontWeight: 600, color: 'var(--navy-900)', maxWidth: '110px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ fontWeight: 600, color: 'var(--navy-900)', maxWidth: '90px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={currentUser.name}>
                   {currentUser.name}
                 </span>
                 <span className={`badge ${
                   isCitizen ? 'badge-primary' : 
                   currentUser.role === 'ADMIN' ? 'badge-danger' : 'badge-warning'
-                }`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem' }}>
+                }`} style={{ fontSize: '0.62rem', padding: '0.08rem 0.3rem' }}>
                   {isCitizen ? t('role_citizen', 'Citizen') : (currentUser.role === 'ADMIN' ? t('role_admin', 'Admin') : t('role_officer', 'Officer'))}
                 </span>
               </div>
             )}
 
-            {/* Desktop Logout Button */}
+            {/* Desktop Logout Button — ALWAYS visible and prominent */}
             {currentUser && (
               <button 
                 className="btn btn-outline-danger btn-sm desktop-only"
                 onClick={onLogout}
                 title="End active session and return to login screen"
-                style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.35rem', 
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                  height: '30px',
+                  padding: '0 0.65rem',
+                  fontSize: '0.78rem'
+                }}
               >
-                <LogOut size={14} />
+                <LogOut size={13} />
                 <span>{t('nav_logout', 'Logout')}</span>
               </button>
             )}
@@ -317,7 +348,7 @@ export function Navbar({
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle navigation menu"
               title="Menu"
-              style={{ display: 'none', alignItems: 'center', justifyContent: 'center', padding: '0.4rem', width: '34px', height: '34px' }}
+              style={{ alignItems: 'center', justifyContent: 'center', padding: '0.35rem', width: '32px', height: '32px' }}
             >
               {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>

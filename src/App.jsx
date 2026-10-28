@@ -194,7 +194,9 @@ export default function App() {
       setComplaints(refreshed)
       const logs = await apiGetAuditLogs()
       setAuditLogs(logs)
-      showToast(`✅ Complaint ${saved.id} registered and persisted to SQLite!`)
+      const health = await apiHealthCheck()
+      setBackendHealth(health)
+      showToast(`✅ Complaint ${saved.id} registered and saved to live database!`)
     } catch (err) {
       console.error('[handleComplaintCreated] Backend error:', err.message)
       showToast(`❌ Database Error: ${err.message}`)

@@ -1,6 +1,11 @@
-import React from 'react'
+import React, { useId } from 'react'
 
 export function NagarakshakLogo({ size = 28, className = '' }) {
+  const reactId = useId()
+  const cleanId = reactId.replace(/[^a-zA-Z0-9]/g, '')
+  const goldId = `nagarakshaGold_${cleanId}`
+  const buildingId = `nagarakshaBuilding_${cleanId}`
+
   return (
     <svg 
       width={size} 
@@ -9,16 +14,16 @@ export function NagarakshakLogo({ size = 28, className = '' }) {
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
       className={className}
-      style={{ display: 'block', flexShrink: 0 }}
+      style={{ display: 'block', flexShrink: 0, margin: 'auto' }}
       aria-label="NAGARAKSHAK Emblem"
     >
       <defs>
-        <linearGradient id="nagarakshaGold" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id={goldId} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#f59e0b" />
           <stop offset="50%" stopColor="#d97706" />
           <stop offset="100%" stopColor="#b45309" />
         </linearGradient>
-        <linearGradient id="nagarakshaBuilding" x1="0%" y1="0%" x2="0%" y2="100%">
+        <linearGradient id={buildingId} x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#fef3c7" />
           <stop offset="30%" stopColor="#f59e0b" />
           <stop offset="100%" stopColor="#b45309" />
@@ -34,11 +39,11 @@ export function NagarakshakLogo({ size = 28, className = '' }) {
            C 57 85, 67 76, 73 63 
            C 77 52, 77 38, 76 25 
            C 71 20, 60 18, 50 16 Z" 
-        stroke="url(#nagarakshaGold)" 
+        stroke={`url(#${goldId})`} 
         strokeWidth="4.5" 
         strokeLinejoin="round" 
         strokeLinecap="round"
-        fill="rgba(15, 23, 42, 0.08)"
+        fill="rgba(217, 119, 6, 0.12)"
       />
 
       {/* Center Skyline Antenna / Spire */}
@@ -47,7 +52,7 @@ export function NagarakshakLogo({ size = 28, className = '' }) {
         y1="19" 
         x2="50" 
         y2="28" 
-        stroke="url(#nagarakshaGold)" 
+        stroke={`url(#${goldId})`} 
         strokeWidth="2" 
         strokeLinecap="round" 
       />
@@ -55,25 +60,25 @@ export function NagarakshakLogo({ size = 28, className = '' }) {
       {/* Leftmost Building 1 */}
       <path 
         d="M 33 67 L 33 46 L 37 42 L 37 67 Z" 
-        fill="url(#nagarakshaBuilding)" 
+        fill={`url(#${buildingId})`} 
       />
 
       {/* Building 2 (Mid-Left, faceted top) */}
       <path 
         d="M 39 67 L 39 37 L 45 32 L 45 67 Z" 
-        fill="url(#nagarakshaBuilding)" 
+        fill={`url(#${buildingId})`} 
       />
 
       {/* Building 3 (Center Tall Tower) */}
       <path 
         d="M 47 67 L 47 28 L 53 28 L 53 67 Z" 
-        fill="url(#nagarakshaBuilding)" 
+        fill={`url(#${buildingId})`} 
       />
 
       {/* Building 4 (Right Tower) */}
       <path 
         d="M 55 64 L 55 41 L 60 37 L 60 60 Z" 
-        fill="url(#nagarakshaBuilding)" 
+        fill={`url(#${buildingId})`} 
       />
 
       {/* Curved Highway / Base Road */}
@@ -82,7 +87,7 @@ export function NagarakshakLogo({ size = 28, className = '' }) {
            C 36 61, 52 57, 65 59 
            C 55 64, 42 70, 35 74 
            C 30 71, 28 68, 27 65 Z" 
-        fill="url(#nagarakshaGold)" 
+        fill={`url(#${goldId})`} 
       />
 
       {/* Green Tree / Leaf on Right */}
